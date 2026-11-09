@@ -1,0 +1,715 @@
+<title>Edward's DNA Family Tree</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* Layout: horizontal pedigree chart. You on the left, each column one generation back. Click a card for a detail panel. */
+:root{
+  --bg:#f4f1ea; --card:#fffdf8; --ink:#25221d; --muted:#6c665b; --line:#cfc6b4; --panel:#fffdf8;
+  --mom:#2f5f8a; --mom-soft:#e3ecf4; --dad:#b0552b; --dad-soft:#f6e6dc; --you:#2e6b5a; --you-soft:#dcefe8;
+  --ok:#2e6b5a; --ok-soft:#dcefe8; --warn:#8a6a12; --warn-soft:#f5ecd2; --lore:#7a4f8f; --lore-soft:#efe4f3;
+  --display:"Fraunces", Georgia, serif; --body:"Atkinson Hyperlegible", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#1b1a17; --card:#262420; --ink:#eee8dc; --muted:#a59e90; --line:#4a463d; --panel:#24221e;
+  --mom:#8db6dc; --mom-soft:#22303c; --dad:#e59a74; --dad-soft:#3a2a21; --you:#7cc4ad; --you-soft:#1f332c;
+  --ok:#7cc4ad; --ok-soft:#1f332c; --warn:#e2c46b; --warn-soft:#38301a; --lore:#c9a3dc; --lore-soft:#33283a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#1b1a17; --card:#262420; --ink:#eee8dc; --muted:#a59e90; --line:#4a463d; --panel:#24221e;
+  --mom:#8db6dc; --mom-soft:#22303c; --dad:#e59a74; --dad-soft:#3a2a21; --you:#7cc4ad; --you-soft:#1f332c;
+  --ok:#7cc4ad; --ok-soft:#1f332c; --warn:#e2c46b; --warn-soft:#38301a; --lore:#c9a3dc; --lore-soft:#33283a; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
+header{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 10px;display:flex;flex-wrap:wrap;gap:8px 24px;align-items:end;justify-content:space-between}
+h1{font-family:var(--display);font-weight:650;font-size:clamp(22px,4vw,30px);line-height:1.1;margin:0}
+.sub{color:var(--muted);margin:4px 0 0;font-size:14px;max-width:70ch}
+.tools{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+button{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:6px;padding:6px 10px;cursor:pointer}
+button:hover{border-color:var(--muted)} button:focus-visible{outline:2px solid var(--you);outline-offset:2px}
+button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--muted);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-bottom:8px}
+.legend span{display:inline-flex;gap:6px;align-items:center}
+.sw{width:10px;height:10px;border-radius:2px;display:inline-block}
+main{height:min(76vh,900px);min-height:420px;display:flex;position:relative}
+#viewport{flex:1;min-width:0;overflow:auto;border-top:1px solid var(--line);position:relative;background:
+  radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--line) 55%, transparent) 1px, transparent 0) 0 0/22px 22px}
+#stage{position:relative;transform-origin:0 0}
+svg#links{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
+svg#links path{fill:none;stroke:var(--line);stroke-width:1.5}
+svg#links path.ext{stroke-dasharray:4 3}
+svg#links path.inlaw{stroke:#b07cc6;stroke-dasharray:2 4;stroke-width:2}
+.p.ext.inlaw{border:2px dashed #b07cc6;border-left:2px dashed #b07cc6;background:color-mix(in srgb,#b07cc6 14%,var(--card))}
+.p.sm{width:150px;min-height:0;height:34px;padding:2px 6px;gap:0;overflow:hidden}
+.p.sm .nm{font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.p.sm .yr{font-size:10.5px}
+.p.ext{border-left:2px dashed var(--line);cursor:default;background:color-mix(in srgb,var(--card) 70%,var(--bg))}
+.gen-label{position:absolute;top:8px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.p{position:absolute;box-sizing:border-box;width:180px;min-height:54px;background:var(--card);border:1px solid var(--line);border-left:4px solid var(--side);border-radius:6px;
+  padding:6px 18px 6px 9px;cursor:pointer;text-align:left;display:grid;gap:1px;box-shadow:0 1px 0 color-mix(in srgb,var(--ink) 6%,transparent)}
+.p:hover{border-color:var(--side)} .p.sel{outline:2px solid var(--side);outline-offset:1px}
+.p.dad{--side:var(--dad)} .p.mom{--side:var(--mom)} .p.you{--side:var(--you);background:var(--you-soft)}
+.p .nm{font-weight:700;font-size:13.5px;line-height:1.2}
+.p .yr{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.p .star{color:var(--warn);margin-right:3px}
+.p.hasimg{padding-right:34px}
+.p .av{position:absolute;right:4px;top:4px;width:26px;height:26px;border-radius:50%;object-fit:cover}
+.portrait{display:block;width:100%;max-height:320px;object-fit:contain;border-radius:8px;margin-bottom:6px}.cap{font-size:12px;color:var(--muted);margin:0 0 10px}
+.p.ext.clk{cursor:pointer}.p.ext.clk:hover{outline:2px solid var(--warn)}
+.p .dot{position:absolute;top:7px;right:7px;width:8px;height:8px;border-radius:50%}
+.dot.confirmed,.dot.record{background:var(--ok)} .dot.check{background:var(--warn)} .dot.lore{background:var(--lore)} .dot.told{background:var(--you)}
+.p.dna::after{content:"DNA";position:absolute;bottom:5px;right:7px;font-size:10px;font-weight:700;color:var(--side);letter-spacing:.05em}
+#panel{width:min(400px,100%);flex-shrink:0;border-top:1px solid var(--line);border-left:1px solid var(--line);background:var(--panel);overflow:auto;
+  padding:18px max(16px,env(safe-area-inset-right,0px)) 24px 18px}
+#panel[hidden]{display:none!important}
+#fam{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px)}
+#fam[hidden]{display:none!important}
+#fam .fh{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:12px max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px));border-bottom:1px solid var(--line)}
+#fam .fh h2{font-family:var(--display);font-size:20px;margin:0}
+#fam .fh p{margin:2px 0 0;color:var(--muted);font-size:13px}
+#famv{flex:1;overflow:auto;position:relative}
+#fams{position:relative}
+#fams svg{position:absolute;left:0;top:0;overflow:visible}
+#fams svg path{fill:none;stroke:var(--line);stroke-width:1.5}
+.f{position:absolute;box-sizing:border-box;width:168px;min-height:52px;max-height:96px;overflow:hidden;background:var(--card);border:1px solid var(--line);border-top:3px solid var(--side,var(--muted));border-radius:6px;padding:5px 8px;display:grid;gap:1px;text-align:left;font:inherit;color:var(--ink)}
+.f.anc{cursor:pointer;background:var(--you-soft)} .f.me{outline:2px solid var(--you)}
+.f .nm{font-weight:700;font-size:13px;line-height:1.2} .f .yr,.f .sp{font-size:11.5px;color:var(--muted)}
+.famlinks{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+
+@media (max-width:760px){
+  #panel{position:absolute;left:0;right:0;bottom:0;width:auto;max-height:62%;border-left:0;border-top:2px solid var(--line);border-radius:12px 12px 0 0;box-shadow:0 -8px 24px color-mix(in srgb,#000 25%,transparent);
+    padding-left:max(16px,env(safe-area-inset-left,0px));padding-bottom:calc(20px + env(safe-area-inset-bottom,0px))}
+}
+.ph{display:flex;justify-content:space-between;gap:10px;align-items:start}
+.ph h2{font-family:var(--display);font-weight:650;font-size:22px;line-height:1.15;margin:0;text-wrap:balance}
+.close{flex-shrink:0;padding:4px 9px}
+.rel{color:var(--muted);font-size:13px;margin:4px 0 10px}
+.badge{display:inline-block;font-size:12px;font-weight:700;border-radius:4px;padding:2px 7px;margin:0 0 10px}
+.badge.confirmed,.badge.record{background:var(--ok-soft);color:var(--ok)} .badge.check{background:var(--warn-soft);color:var(--warn)}
+.badge.lore{background:var(--lore-soft);color:var(--lore)} .badge.told{background:var(--you-soft);color:var(--you)}
+dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0 0 12px;font-size:14px}
+dt{color:var(--muted)} dd{margin:0;min-width:0}
+.sec{margin:14px 0 4px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.notes{margin:0;font-size:14px}
+.links{display:flex;flex-wrap:wrap;gap:6px}
+.links button{font-size:13px;padding:4px 8px}
+.src a{color:var(--ink);font-size:13px;word-break:break-word}
+.src{display:grid;gap:3px}
+.below{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px 24px;border-top:1px solid var(--line);display:grid;gap:14px;
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}
+.below section{min-width:0}
+.below h3{font-family:var(--display);font-size:18px;margin:0 0 6px}
+.below ul{margin:0;padding-left:18px;font-size:14px;display:grid;gap:3px}
+.below p{margin:0 0 6px;font-size:14px}
+#dnaBox[hidden]{display:none!important}
+@media (prefers-reduced-motion:no-preference){#viewport{scroll-behavior:smooth}}
+</style>
+
+<header>
+  <div>
+    <h1>Edward's DNA Family Tree</h1>
+    <p class="sub">Edward William Harris IV. Click anyone to see what is known about them. Built from 23andMe, obituaries, grave records and FamilySearch. Updated November 6, 2026.</p>
+  </div>
+  <div class="tools">
+    <button id="zout" aria-label="Zoom out">−</button>
+    <button id="zin" aria-label="Zoom in">+</button>
+    <button id="zfit">Fit</button>
+    <label style="display:inline-flex;gap:6px;align-items:center;font-size:14px">Side <select id="sideSel"><option value="">Both</option><option value="dad">Harris (Dad)</option><option value="mom">Dixon (Mom)</option></select></label>
+    <label style="display:inline-flex;gap:6px;align-items:center;font-size:14px">Generations <select id="depthSel"><option value="3">3</option><option value="5" selected>5</option><option value="7">7</option><option value="99">All</option></select></label>
+    <button id="extBtn" aria-pressed="false">Show cousins</button>
+    <button id="dnaBtn" aria-pressed="false">DNA matches</button>
+    <button data-fam="ewh1">Harris cousins</button>
+    <button data-fam="hugh">Dixon cousins</button>
+  </div>
+</header>
+<div class="legend">
+  <span><i class="sw" style="background:var(--dad)"></i>Dad's side</span>
+  <span><i class="sw" style="background:var(--mom)"></i>Mom's side</span>
+  <span><i class="sw" style="background:var(--ok);border-radius:50%"></i>Record found</span>
+  <span><i class="sw" style="background:var(--warn);border-radius:50%"></i>Tree claim, needs checking</span>
+  <span><i class="sw" style="background:var(--lore);border-radius:50%"></i>Family lore</span>
+  <span style="color:var(--warn)">★ <span style="color:var(--muted)">Interesting fact</span></span>
+  <span><span style="display:inline-block;width:12px;height:10px;border:2px dashed #b07cc6;vertical-align:-1px"></span> <span style="color:var(--muted)">Related by marriage, not blood</span></span>
+</div>
+<main>
+  <div id="viewport"><div id="stage"><svg id="links"></svg></div></div>
+  <aside id="panel" hidden aria-live="polite"></aside>
+  <div id="fam" hidden role="dialog" aria-label="Family view"><div class="fh"><div><h2 id="famt"></h2><p>Blood relatives and their spouses. Living people show by name only, with no dates. Shaded boxes are your direct ancestors; click one to see their card.</p></div><button id="famx" aria-label="Close family view">✕</button></div><div id="famv"><div id="fams"><svg id="famsvg"></svg></div></div></div>
+</main>
+<div class="below">
+  <section id="dnaBox" hidden>
+    <h3>23andMe DNA matches</h3>
+    <p><b>Mom's side:</b> Thornton Dixon (great-great-uncle, shown as half great-uncle), Debbi Thigpen, Donna Hirschfield, Lori Colton, Carla Arnold, Renata Smith, Laura Thigpen, Kathryn Thigpen, K T, Mason Koob.</p>
+    <p><b>Dad's side:</b> Lauren Harris (2nd cousin: granddaughter of great-uncle Larry Harris, confirmed by great-aunt Judy), Holly James, Martin Groom, Amanda Marchak, Kevin Rose and James Rose (Aunt Judy's sons, your 1st cousins once removed. 23andMe's guess tree wrongly draws them on Mom's side), Lauren Hawkins (Hawkins is Grandma Gerry's mother's family).</p>
+    <p><b>Not placed:</b> Mark Shinholser, Faith Engeloff.</p>
+  </section>
+  <section>
+    <h3>Open questions</h3>
+    <ul>
+      <li>Roy Lee Dixon was adopted. Wendell believes he was originally a Waters, with a sister named Lois. Not known if that was his birth family.</li>
+            <li>Edward Harriss's parents (born about 1834, Ilsley, Berkshire). Possible: William and Elizabeth Harris of East Ilsley. Needs a baptism record.</li>
+      <li>Thomas Caterer's parents (born about 1838, Wheatfield, Oxfordshire).</li>
+      <li>Where George and Elizabeth Harriss died and are buried. Likely Winnipeg, after 1921.</li>
+      <li>Neville before Thomas Nevil (1808) is likely, not proven. England link is lore.</li>
+      <li>Andrew Jackson: the family story says a link to the president. Not proven either way. Your great-great-grandfather shared the name.</li>
+    </ul>
+  </section>
+  <section>
+    <h3>Family stories, checked</h3>
+    <ul>
+      <li><b>Neville from Britain:</b> Neville line found through Granny Thaggard. British origin likely, not proven.</li>
+      <li><b>Native American:</b> 23andMe shows 0%.</li>
+      <li><b>Ireland in your DNA:</b> fits Scots-Irish families like Carmichael, common in Georgia.</li>
+      <li><b>English Harris roots:</b> proven. Christopher Henry Harris was born in Bray, Berkshire in 1884 and left for Canada after 1901. His wife Fanny Francis was born in Bristol, England.</li>
+      <li><b>Evergreen Cemetery, St. Augustine:</b> confirmed resting place of Christopher and Effie Harris, Edward Sr., Virgie, Bubba and Gerry.</li>
+      <li><b>Scottish roots:</b> the Thaggard line came from the Highland Scots area of North Carolina. Carmichael and McMillan are Scottish names too.</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+const FG = id => 'https://www.findagrave.com/memorial/' + id;
+const FS = id => 'https://www.familysearch.org/tree/person/details/' + id;
+/* proof: told | confirmed | record | check | lore */
+const P = {
+ you:{n:"Edward William Harris IV",y:"",proof:"told",f:"dad",m:"mom",notes:"You."},
+ dad:{n:"Edward William Harris III",y:"",proof:"told",f:"ewh2",m:"gerry",sib:"Paige, Rick, Dana"},
+ mom:{n:"Lynn Dixon",y:"",proof:"told",f:"bobby",m:"betty",sib:"Bob Jr., Kathy"},
+
+ ewh2:{img:"https://images.findagrave.com/photos/2022/3/235526910_257b41b8-218c-4500-9974-041d7e71ca14.jpeg?size=photos250",imgc:"Photo from Find a Grave, memorial 260526900. Later in life.",star:"Set the Atlanta City League rushing record in 1956, with over 1,200 yards.",n:"Edward William Harris Jr.",aka:"\"Bubba\"",y:"1938–2021",b:"Jan 3, 1938, St. Augustine, FL",d:"Dec 30, 2021, Powder Springs, GA",bur:"Evergreen Cemetery, St. Augustine, FL",proof:"confirmed",f:"ewh1",m:"virgie",
+  sp:"Geraldine \"Gerry\" Dowdy, married 56 years",sib:"Laurence Christopher \"Larry\" Harris (1936–2024; children Allyson, Tracy and Chris), Judith Lee \"Judy\" Harris (children Floyd, Elizabeth, James Jr., Cary and Kevin Rose)",
+  notes:"A star running back at Joe E. Brown High School in Atlanta. Set the City League rushing record in 1956 with over 1,200 yards. Played football at Gordon Military Academy. Served 3 years in the Army at Fort Gordon. Lead pressman at Williams Printing Company until 2003. Coached youth football as \"Coach Bubba\" in the SAA league. Raised his four children in Smyrna, GA. Member of St. James Episcopal Church, Marietta.",
+  src:[["Obituary, West Cobb Funeral Home","https://www.westcobbfuneralhome.com/obituaries/edward-harris-21"],["Find a Grave",FG("260526900/edward-william-harris")],["Brother Larry's obituary","https://www.dignitymemorial.com/obituaries/lilburn-ga/laurence-harris-11898426"]]},
+ gerry:{img:"https://cdn.tukioswebsites.com/aa54a190-be70-4fa5-a155-438a8d6688fa/lg",imgc:"Photo from her obituary, West Cobb Funeral Home.",n:"Geraldine \"Gerry\" Dowdy",y:"1939–2017",b:"Sep 25, 1939, Fitzgerald, GA",d:"Feb 27, 2017, Powder Springs, GA",bur:"Evergreen Cemetery, St. Augustine, FL",proof:"confirmed",f:"ernest",m:"ida",
+  sib:"Adaline Glennette Dowdy (1942–2004), Wanda Dowdy",notes:"Married Edward \"Bubba\" Harris for 56 years. Memorial at St. James Episcopal Church, Marietta.",
+  src:[["Obituary, West Cobb Funeral Home","https://www.westcobbfuneralhome.com/obituaries/geraldine-harris-7"],["FamilySearch","https://www.familysearch.org/tree/person/details/GZP7-4ZR"]]},
+
+ ewh1:{star:"Owned General Lithographing Company, a printing business in Atlanta.",n:"Edward William Harris Sr.",y:"1912–1970",b:"Feb 18, 1912, Winnipeg, Manitoba, Canada",d:"Jun 26, 1970, St. Augustine, FL",bur:"Evergreen Cemetery, St. Augustine, FL",proof:"record",f:"chris",m:"fanny",
+  sp:"Virgie Lee Landrum, married 1933 in Bradford County, FL",sib:"Violet Elizabeth (1914–1974, born in Canada; married Ashford Travis Jordan; daughters Shirley Elizabeth Jordan Thomas and Margot Cavell Jordan Reid), Robert Christopher \"Bob\" (1916–2001, born in Winnipeg; married Winifred Monson; son Robert Lynn Harris; buried San Lorenzo Cemetery, St. Augustine), Margaret Cavell (1919–2007, married a Carter; lived in Winter Park, FL)",
+  notes:"His names were already in the family: his great-grandfather was Edward Harriss, his great-uncle was William Edward Harriss, and his uncle was William George Harriss. Born in Canada. Lived in Springfield, Manitoba as a child. The family was in St. Augustine by 1930. Registered for the WWII draft in Atlanta. Lived in St. Augustine's old city in the late 1930s, then moved to Atlanta. His 1970 obituary in the St. Augustine Record says he once worked for that newspaper, and that he owned General Lithographing Company, a printing business in Atlanta. His son Bubba later became a lead pressman, so printing ran in the family.",
+  src:[["Find a Grave",FG("63384629/edward-william-harris")],["FamilySearch PW3R-TLK",FS("PW3R-TLK")],["1933 Florida marriage record","https://www.familysearch.org/ark:/61903/1:1:V6RQ-BM3"]]},
+ virgie:{n:"Virgie Lee Landrum",y:"1913–2004",b:"Feb 5, 1913, Pleasant Grove, FL",d:"Jul 24, 2004, Pine Mountain, GA",bur:"Evergreen Cemetery, St. Augustine, FL",proof:"record",f:"wrl",m:"susie",
+  sib:"Vera Estelle Landrum Brooks (1902–1993), Arthur Davis (1904–1926), Carmen Thelma (1906–1918), Ellis Earl (1908–1995), Lawrence Clifford (1910–1912), William Robert \"Bob\" Jr. (1915–1975), Catherine Miller Landrum Barco (1918–2000); half-sister Susie E. Allen (1895–1983)",src:[["FamilySearch L6RB-G68",FS("L6RB-G68")]]},
+ ernest:{n:"Ernest Glenn Dowdy",y:"1915–1979",b:"Nov 2, 1915, Crisp County, GA",d:"Jan 8, 1979, Tift County, GA",bur:"Evergreen Cemetery, Fitzgerald, GA",proof:"record",f:"wjd",m:"lettie",
+  sib:"William Grady (1917–1988), Edward Randolph (1920–1976), and five more",src:[["FamilySearch GML3-34G",FS("GML3-34G")]]},
+ ida:{n:"Ida Lorene Hawkins",y:"1919–2000",b:"Mar 21, 1919, Eastman, GA",d:"Mar 3, 2000, Fitzgerald, GA",bur:"Evergreen Cemetery, Fitzgerald, GA",proof:"record",f:"jwh",m:"kidd",
+  sib:"James Winston (1900–1974), Paul Kidd (1903–1991), Aline (1906–1920), William Blanton (1909–1986), Cawley Coates (1916–1974)",
+  notes:"Your DNA match Lauren Hawkins (3rd cousin, Dad's side) likely connects through this family.",src:[["FamilySearch LRWF-Q8S",FS("LRWF-Q8S")]]},
+
+ chris:{star:"Left England for Canada as a teenager, taught at a technical high school in Winnipeg, then moved the family to Florida.",n:"Christopher Henry Harris",y:"1884–1967",b:"Aug 11, 1884, Bray, Berkshire, England",d:"Jan 18, 1967, St. Augustine, FL",bur:"Evergreen Cemetery, St. Augustine, FL",proof:"record",f:"george",m:"bessie",
+  sp:"Fanny Elizabeth Francis, married Jun 16, 1911, Winnipeg",sib:"Annie Sarah (1886), Nellie \"Nell\" (1889–1970; listed as \"Miss Nell Harris\" of Victoria, British Columbia, in his 1967 obituary), Thomas Edward (1893), William George (1895), Robert Guy (1901)",
+  notes:"Your immigrant ancestor. In 1891, age 6, he lived in Aylesbury, England. In 1901, age 16, he was an apprentice plumber in Bletchley. He left for Canada soon after. Lived in Winnipeg (1911) and Springfield, Manitoba (1916). Crossed into the U.S. in 1923. In St. Augustine, FL by 1930. Your great-uncle Larry was named Laurence Christopher, likely after him. An online tree linked him to the wrong parents (a different Christopher Harris who married in Barrow, England in 1908). His own Social Security file and the census fix this. His 1967 obituary in the St. Augustine Record says he lived in St. Augustine for 45 years. He was a retired sheet-metal worker for the Florida East Coast Railway. Back in Winnipeg, he had been an instructor at Kelvin Technical High School. He also played in an old-timers band in St. Augustine.",
+  src:[["UK GRO birth index: HARRISS, Christopher Henry, mother CATNER, Sep quarter 1884, Cookham, 2C/414","https://www.gro.gov.uk/gro/content/certificates/indexes_search.asp"],["Find a Grave",FG("63384763/christopher-henry-harris")],["Social Security file (names his parents)","https://www.familysearch.org/search/record/results?q.givenName=Christopher%20Henry&q.surname=Harris&q.birthLikeDate.from=1883&q.birthLikeDate.to=1885"],["1891 England census","https://www.familysearch.org/ark:/61903/1:1:4GTD-TW2"],["1901 England census","https://www.familysearch.org/ark:/61903/1:1:X9YR-5MH"],["1923 border crossing","https://www.familysearch.org/ark:/61903/1:1:XL95-FMP"],["FamilySearch PW3R-C2B",FS("PW3R-C2B")]]},
+ fanny:{n:"Fanny Elizabeth Francis",aka:"\"Effie\"",y:"1890–1980",b:"Jun 20, 1890, Bristol, England",d:"Feb 29, 1980, Jacksonville, FL",bur:"Evergreen Cemetery, St. Augustine, FL",proof:"record",f:"fhf",m:"fej",notes:"Went by Effie. Also English. Baptized in Bristol in 1890. Married Christopher Henry Harris in Winnipeg in 1911.",src:[["Find a Grave",FG("63488587/fanny-elizabeth-harris")],["FamilySearch PW35-1G2",FS("PW35-1G2")]]},
+ fhf:{f:"fhf_2",m:"fhf_3",n:"Frederick Henry Francis",y:"1862–1917",proof:"record",sp:"Fanny Elizabeth Jones, married Oct 31, 1889, Bedminster, Somerset, England",src:[["FamilySearch GMY3-GB1",FS("GMY3-GB1")]]},
+ fej:{f:"fej_2",m:"fej_3",n:"Fanny Elizabeth Jones",y:"1868–1935",proof:"record",notes:"Her daughter Fanny Elizabeth was named after her.",src:[["FamilySearch GMY3-G17",FS("GMY3-G17")]]},
+ wrl:{n:"William Robert Landrum",y:"1867–1939",b:"Nov 3, 1867, Marion, Hamilton County, FL",d:"Sep 24, 1939, Brooksville, FL",proof:"record",f:"jtl",m:"jadams",sp:"Susie Pryor Rahn, married Feb 19, 1902, Inverness, FL",notes:"Eight children. Lived around Citrus and Bradford counties, FL.",src:[["FamilySearch LY5Y-6Y8",FS("LY5Y-6Y8")]]},
+ jtl:{n:"Jacob Turner Landrum",y:"1842–1914",b:"Sep 9, 1842, Warren County, GA",d:"Aug 27, 1914, Inverness, FL",f:"wjl",m:"newsom",proof:"record",src:[["FamilySearch LY5T-55M",FS("LY5T-55M")]]},
+ jadams:{n:"Jane Adams",y:"",proof:"record",src:[["FamilySearch LY5Y-6YL",FS("LY5Y-6YL")]]},
+ jld:{f:"jld_2",m:"jld_3",n:"John Lottaway Dowdy",y:"1804–1860",proof:"check",sp:"Gordie Ann Anderson, married Jan 4, 1826, Screven County, GA",notes:"Ten children.",src:[["FamilySearch LHVN-KB3",FS("LHVN-KB3")]]},
+ gaa:{f:"gaa_2",m:"gaa_3",n:"Gordie Ann Anderson",y:"1808–1864",proof:"check",src:[["FamilySearch KVLF-D2R",FS("KVLF-D2R")]]},
+ dch:{f:"dch_2",m:"dch_3",n:"Drury Calvin Hawkins",y:"1792–1867",proof:"check",sp:"Sarah Walton Smith, married Jul 16, 1817, Hancock County, GA",src:[["FamilySearch LZ23-6XV",FS("LZ23-6XV")]]},
+ sws:{f:"sws_2",m:"sws_3",n:"Sarah Walton Smith",y:"1800–1828",proof:"check",src:[["FamilySearch LWY6-GWR",FS("LWY6-GWR")]]},
+ wjl:{f:"wjl_2",m:"wjl_3",n:"William Jacob Landrum",y:"1801–1899",proof:"check",src:[["FamilySearch L143-95L",FS("L143-95L")]]},
+ newsom:{f:"newsom_2",m:"newsom_3",n:"Elizabeth Newsom",y:"1812–1863",proof:"check",src:[["FamilySearch G9PR-6VD",FS("G9PR-6VD")]]},
+ jcr:{star:"Possible link to the Salzburgers, who fled Austria and settled Georgia in 1734.",n:"John Christian Rahn",y:"d. 1832",proof:"record",sp:"Margaret Zipperer, married Apr 25, 1820, Effingham County, GA",
+  notes:"Rahn and Zipperer are well-known Salzburger family names. The Salzburgers were German-speaking Protestants who fled Austria and settled Ebenezer, in Effingham County, Georgia, in 1734. The 1820 marriage of John Rahn and Margaret Zipperer in Effingham County is in Georgia's county marriage records. The link to their son John Thomas Rahn comes from a family tree. If it holds, part of your dad's family goes back to the Salzburgers.",src:[["Georgia marriage records, 1820","https://www.familysearch.org/search/record/results?q.surname=Rahn&q.spouseSurname=Zipperer&q.marriageLikeDate.from=1815&q.marriageLikeDate.to=1825"],["FamilySearch M47Q-8HB",FS("M47Q-8HB")]]},
+ zipperer:{n:"Margaret Zipperer",y:"b. 1792",b:"1792, Effingham County, GA",proof:"record",notes:"Zipperer is a Salzburger family name from Effingham County, GA.",src:[["FamilySearch M7K9-K64",FS("M7K9-K64")]]},
+ jtr:{n:"John Thomas Rahn",y:"1827–1885",b:"Aug 1827, Effingham County, GA",d:"Jul 15, 1885, Lake Park, GA",f:"jcr",m:"zipperer",proof:"record",sp:"Almena Indiana Clayton, married Aug 22, 1869, Echols County, GA",src:[["FamilySearch MBSK-3PD",FS("MBSK-3PD")]]},
+ clayton:{f:"clayton_2",m:"clayton_3",n:"Almena Indiana Clayton",y:"1840–1932",proof:"record",src:[["FamilySearch G3BT-2X3",FS("G3BT-2X3")]]},
+ susie:{n:"Susie Pryor Rahn",y:"1883–1918",b:"Feb 22, 1883, Coffee County, GA",d:"Feb 12, 1918, Floral City, FL",f:"jtr",m:"clayton",proof:"record",notes:"Died when Virgie was about five.",src:[["FamilySearch L6RB-LNR",FS("L6RB-LNR")]]},
+ wjd:{n:"William Jackson Dowdy",y:"1897–1969",b:"Aug 21, 1897, Cordele, GA",d:"Sep 9, 1969, Crisp County, GA",bur:"Cordele, GA",proof:"record",f:"jdd",m:"graham",sp:"Lettie Elizabeth Hollingsworth, married about 1914",notes:"Eight children.",src:[["FamilySearch GML3-CJB",FS("GML3-CJB")]]},
+ lettie:{n:"Lettie Elizabeth Hollingsworth",y:"1898–1987",b:"Nov 23, 1898, Georgia",d:"Dec 29, 1987, Cordele, GA",proof:"record",f:"jth",m:"garrett",src:[["FamilySearch MHL1-KN3",FS("MHL1-KN3")]]},
+ jwh:{n:"John William Hawkins",y:"1868–1939",b:"Oct 1868, Georgia",d:"Jan 6, 1939, Worth County, GA",proof:"record",f:"jmh",m:"coats",sp:"Fannie A. Kidd, married Jan 6, 1897, Bibb County, GA",src:[["FamilySearch LRQ1-ZNM",FS("LRQ1-ZNM")]]},
+ kidd:{n:"Fannie A. Kidd",y:"1875–1936",b:"Nov 15, 1875, Macon, GA",d:"Aug 23, 1936, Bibb County, GA",bur:"Ashburn, GA",proof:"record",f:"jhk",m:"cawley",src:[["FamilySearch LRW4-2YG",FS("LRW4-2YG")]]},
+
+ george:{star:"Moved his whole family from England to Canada in 1908.",n:"George Harriss",y:"b. 1861",b:"Jul–Sep 1861, Purley, Berkshire, England",proof:"record",f:"edwardh",m:"harriettw",sp:"Elizabeth Sarah Caterer",
+  sib:"Thomas (1858), Ann (1864), William Edward (1866), Harriett Susanna (1876)",
+  notes:"The family spelled the name Harriss. Born in Purley, near Reading. The 1901 census misread this as \"Purby.\" Insurance agent for the Prudential in Aylesbury in 1891, gardener in Bletchley in 1901. The family lived in Bedminster, Bristol around 1890. Moved to Canada in 1908, after his children. Lived in MacDonald, Manitoba (1911) and St. James, Winnipeg (1921). Methodist. Grave not found yet.",
+  src:[["UK GRO birth index: HARRISS, George, mother WHITING, Sep quarter 1861, Bradfield, 2C/304","https://www.gro.gov.uk/gro/content/certificates/indexes_search.asp"],["1871 England census (born Purley, parents Edward and Harriett)","https://www.familysearch.org/search/record/results?q.givenName=George&q.surname=Harriss&q.birthLikeDate.from=1860&q.birthLikeDate.to=1862&q.anyPlace=Berkshire%2C%20England"],["1891 England census","https://www.familysearch.org/ark:/61903/1:1:4GTD-TW2"],["1901 England census","https://www.familysearch.org/ark:/61903/1:1:X9YR-5MH"],["1911 Canada census","https://www.familysearch.org/ark:/61903/1:1:QV95-C7RZ"]]},
+ bessie:{n:"Elizabeth Sarah Caterer",y:"b. 1859",b:"Apr–Jun 1859, Watlington area (Henley district), Oxfordshire, England",proof:"record",f:"tcaterer",m:"hine",
+  notes:"Maiden name Caterer. Five of her children were registered with mother's maiden name Caterer. Christopher's entry says Catner, and his Social Security file says Cartier. Both are misspellings. She moved to Canada with George and lived in St. James, Winnipeg in 1921.",
+  src:[["UK GRO birth index: CATERER, Elizabeth Sarah, mother HINE, Jun quarter 1859, Henley, 3A/507","https://www.gro.gov.uk/gro/content/certificates/indexes_search.asp"],["1911 Canada census","https://www.familysearch.org/ark:/61903/1:1:QV95-C7RZ"]]},
+ edwardh:{n:"Edward Harriss",y:"b. about 1834",b:"About 1834, Ilsley, Berkshire, England",proof:"record",f:"wharris",m:"eharris",sp:"Harriett Whiting",
+  notes:"An agricultural labourer in Purley, Berkshire in 1861. By 1881 the family lived in Bramley, Surrey. Children: Thomas (1858), George (1861), Ann (1864), William Edward (1866), Henry (about 1872) and Harriett Susanna (1876). Henry later lived with George's family in 1891. Born before English birth registration began in 1837, so his parents need a church baptism record.",
+  src:[["1861 England census, Purley","https://www.familysearch.org/ark:/61903/1:1:M7DQ-YNC"]]},
+ wharris:{n:"William Harris",y:"b. about 1799",proof:"check",sp:"Elizabeth",notes:"A possible father for Edward, not proven. In 1841 this family lived in East Ilsley, Berkshire, with children including William (about 1832), Sophia (about 1836), Edward (about 1838) and George. By 1851 they had moved to Reading, close to Purley, where your Edward later lived. The names William and George both appear among your Edward's sons. One problem: this Edward's age makes him about 3 years younger than yours. A baptism record would settle it.",src:[["1841 England census, East Ilsley (FamilySearch search)","https://www.familysearch.org/search/record/results?q.surname=Harris&q.residencePlace=East%20Ilsley%2C%20Berkshire%2C%20England&q.residenceDate.from=1841&q.residenceDate.to=1841"]]},
+ eharris:{n:"Elizabeth Harris",y:"b. about 1800",proof:"check",notes:"A possible mother for Edward, not proven. Wife of William Harris of East Ilsley, later Reading."},
+ harriettw:{n:"Harriett Whiting",y:"b. about 1837",b:"About 1837, Peasemore, Berkshire, England",proof:"record",f:"twhiting",m:"susannah",
+  notes:"In 1861 her younger sister Hannah Whiting, 12, lived with her and Edward in Purley. Her daughter Harriett Susanna was named after her and, likely, her mother Susannah.",src:[["1841 England census, Peasemore","https://www.familysearch.org/ark:/61903/1:1:MQRQ-BJ7"],["1861 England census, Purley","https://www.familysearch.org/ark:/61903/1:1:M7DQ-YNC"]]},
+ twhiting:{n:"Thomas Whiting",y:"b. about 1801",b:"About 1801, Berkshire, England",proof:"check",notes:"Head of Harriett's household in Peasemore in the 1841 census. The 1841 census does not state relationships, so he is very likely, but not proven, her father. A Martha Whiting, 75, also lived there, possibly his mother.",src:[["1841 England census, Peasemore","https://www.familysearch.org/ark:/61903/1:1:MQRQ-BJ7"]]},
+ susannah:{n:"Susannah Whiting",y:"b. about 1811",proof:"check",notes:"In the Peasemore household in 1841 with children Eliza, David, Harriet and Ann. Very likely Harriett's mother.",src:[["1841 England census, Peasemore","https://www.familysearch.org/ark:/61903/1:1:MQRQ-BJ7"]]},
+ tcaterer:{n:"Thomas Caterer",y:"b. about 1838",b:"About 1838, Wheatfield, Oxfordshire, England",proof:"record",sp:"Sarah Hine",
+  notes:"A gardener in Watlington, Oxfordshire in 1871. Children included Elizabeth Sarah (1859), Thomas (about 1862) and James (1871). George Harriss was also a gardener in 1901.",src:[["1871 England census, Watlington","https://www.familysearch.org/ark:/61903/1:1:KXSB-62D"]]},
+ hine:{n:"Sarah Hine",y:"b. about 1841",b:"About 1841, St. Pancras, London, England",proof:"record",
+  notes:"Maiden name Hine, from her daughter's 1859 birth index entry. In 1871 her mother, Elizabeth White, 71, born in Monks Risborough, Buckinghamshire, lived with the family. Elizabeth had likely remarried. Bessie (Elizabeth Sarah) was named after her mother and grandmother.",src:[["1871 England census, Watlington","https://www.familysearch.org/ark:/61903/1:1:KXSB-62D"]]},
+ jdd:{n:"John D. Dowdy",y:"1856–1940",b:"Mar 6, 1856, Drayton, Dooly County, GA",d:"Aug 7, 1940, Douglas, GA",proof:"record",f:"bill_dowdy",m:"pitts",sp:"Eliza J. Graham, married Nov 18, 1896, Dooly County, GA",src:[["FamilySearch KH6V-TL6",FS("KH6V-TL6")]]},
+ graham:{f:"graham_2",m:"graham_3",n:"Eliza J. Graham",y:"1879–1957",proof:"record",src:[["FamilySearch 9VQ7-NVT",FS("9VQ7-NVT")]]},
+ jth:{n:"Joseph Thomas Hollingsworth",y:"1861–1925",b:"Oct 1, 1861, Newton County, GA",d:"Aug 29, 1925, Wilcox County, GA",proof:"record",f:"jnh",m:"stowers",sp:"Mary Elizabeth Garrett, married Dec 28, 1881",notes:"Ten children.",src:[["FamilySearch K6HW-D5L",FS("K6HW-D5L")]]},
+ garrett:{f:"garrett_2",m:"garrett_3",n:"Mary Elizabeth Garrett",y:"1857–1924",proof:"record",src:[["FamilySearch 94BV-C7V",FS("94BV-C7V")]]},
+ jmh:{n:"James Miriam Hawkins",y:"b. 1818",b:"1818, Washington County, GA",f:"dch",m:"sws",proof:"record",sp:"Sarah L. Coats, married Apr 15, 1847, Wilkes County, GA",src:[["FamilySearch LVG5-4NZ",FS("LVG5-4NZ")]]},
+ coats:{f:"coats_2",m:"coats_3",n:"Sarah L. Coats",y:"b. 1825",proof:"record",src:[["FamilySearch LRQ1-Z4Z",FS("LRQ1-Z4Z")]]},
+ jhk:{n:"James H. Kidd",y:"b. 1840",proof:"record",src:[["FamilySearch LBCR-KGT",FS("LBCR-KGT")]]},
+ cawley:{n:"Fannie Cawley",y:"",proof:"record",notes:"Her family name was passed down as a first name: Cawley Coates Hawkins.",src:[["FamilySearch P3VF-TJN",FS("P3VF-TJN")]]},
+ bill_dowdy:{n:"William Shepherd \"Bill\" Dowdy",y:"1835–1906",b:"1835, Rhine, Telfair County, GA",d:"1906, Dooly County, GA",bur:"Sandy Mount Church",f:"jld",m:"gaa",proof:"record",sp:"Nancy Pitts, married about 1852, Drayton, GA",src:[["FamilySearch K2S1-32D",FS("K2S1-32D")]]},
+ pitts:{f:"pitts_2",m:"pitts_3",n:"Nancy Pitts",y:"1829–1875",proof:"record",src:[["FamilySearch K2S1-927",FS("K2S1-927")]]},
+ jnh:{f:"jnh_2",m:"jnh_3",n:"John Newton Hollingsworth",y:"1833–1862",proof:"record",sp:"Letitia Stowers, married 1852, Laurens, SC",notes:"Died in 1862, during the Civil War. Cause not checked yet.",src:[["FamilySearch LC8H-K2M",FS("LC8H-K2M")]]},
+ stowers:{f:"stowers_2",m:"stowers_3",n:"Letitia Stowers",y:"1830–1906",proof:"record",src:[["FamilySearch KZKH-2HZ",FS("KZKH-2HZ")]]},
+
+ bobby:{img:"https://d1rjyex4ui0ya6.cloudfront.net/obituaries/photos/3079/395596/58b5a9134a5cb.jpg",imgc:"Photo from his obituary, Ronald V. Hall Funeral Home.",star:"Served in the 101st Airborne. Played college football under coach Bobby Bowden.",n:"Rev. Bobby Roy Dixon Sr.",y:"1937–2017",b:"Dec 16, 1937, Cassia, Lake County, FL",d:"Feb 28, 2017, Vidalia, GA",bur:"Lakeview Memorial Gardens, Vidalia",proof:"confirmed",f:"hugh",m:"myrtice",
+  sp:"Betty Katherine Thaggard, married 1958",sib:"Ronald Andrew \"Ronnie\" Dixon (1942–2020, born in Cassia, FL; veteran; mayor of Vidalia from 1994), Wendell H. Dixon",
+  notes:"Army veteran, 101st Airborne. Played football at South Georgia College under Bobby Bowden, as part of Bowden\'s first recruiting class there \u2014 South Georgia was Bowden\'s first head-coaching job. Former pastor of Lyons Presbyterian Church. Founded Christian Concepts for Living in 1985. Chaplain of the Toombs County Sheriff's Department.",
+  src:[["Obituary, Ronald V. Hall Funeral Home","https://www.ronaldvhall.com/obituary/ReverendBobby-Dixon"]]},
+ betty:{n:"Betty Katherine Thaggard",y:"1939–2022",b:"May 18, 1939, Savannah, GA",d:"Dec 5, 2022, Vidalia, GA",proof:"confirmed",f:"neill2",m:"eula",sib:"Neill Archibald Thaggard III (1929–2001), Sue Jane Thaggard Adams (1937–2005)",src:[["Mother's grave record","https://www.findagrave.com/memorial/71696321/eula-jane-thaggard"]]},
+
+ hugh:{img:"https://upload.wikimedia.org/wikipedia/commons/d/de/Dixon_Memorial_State_Forest_sign_and_buildings.JPG",imgc:"Dixon Memorial State Forest, Ware County, Georgia — named for Hugh Maddox Dixon, 1974",star:"Mayor of Vidalia. Georgia named the Dixon Memorial Forest after him in 1974.",n:"Hugh Maddox Dixon",y:"1916–1974",b:"Jul 30, 1916",d:"Feb 25, 1974",bur:"Lakeview Memorial Gardens, Vidalia",proof:"record",f:"roy",m:"ollie",sp:"Myrtice Jackson, married 1935",
+  sib:"The oldest child. Opal Inez Dixon Jackson (1919–1993, married James Ryle \"JR\" Jackson Jr. in 1938, a first cousin of Myrtice), Thornton Morgan Dixon (1921–2019, married Mary Ellen Caldwell), Jewell Dixon Sheppard (1924–1967), Verdie Dixon, Shirley Dixon (the youngest), and Eugene Lester Dixon (1918–1919, died as a baby)",
+  notes:"Not adopted (confirmed by his son Wendell). Met Myrtice in Fenholloway, near Perry, FL. Owned the Dixon Lumber Company. Mayor of Vidalia (the city's certificate lists 1966–1973; the Forestry Commission says 12 years). Served on the Georgia Forestry Commission board from February 1966 until his death, and chaired it for three terms. In June 1974 the Commission renamed the Waycross State Forest the Dixon Memorial Forest in his honor. In 2003 Vidalia dedicated the Dixon Community Center to him and his family.",src:[["Find a Grave",FG("134640773/hugh_maddox-dixon")],["Hugh Dixon in 1969 — captioned group photograph, First National Bank opening, Vidalia (Facebook, Vidalia memories group)","https://facebook.com/groups/170231953049992/permalink/3239634736109683/"],["Georgia Forestry Commission resolution, June 17, 1974 (family copy)",""],["Vidalia Dixon Community Center certificate, Dec 23, 2003 (family copy)",""]]},
+ myrtice:{star:"Started her own business, Myrtice Young Interiors.",n:"Myrtice Jackson",y:"1917–2013",b:"May 19, 1917, Perry, FL",d:"Mar 27, 2013, Lyons, GA",bur:"Lakeview Memorial Gardens, Vidalia",proof:"record",f:"aej",m:"lillian",
+  sib:"Melba Jackson Bethea, Edwin, Ewart, Ernest and Willie Earl Jackson, Artie James Jackson (died age 3)",notes:"Grew up in Fenholloway, near Perry, FL, where she met Hugh. Graduated high school in Perry in 1934. Started Myrtice Young Interiors. Married Jesse Young after Hugh died. A 1998 newspaper story on the Hendry family reunion shows her as a child with her mother and brothers.",src:[["Find a Grave",FG("107431008/myrtice-young")]]},
+ neill2:{n:"Neill Archibald Thaggard II",y:"1901–1953",b:"Oct 20, 1901, Claxton, GA",d:"Feb 6, 1953, Greensboro, NC",proof:"record",f:"neill1",m:"rogers",
+  sib:"Walter, Mamie, Mittie, Sallie, James Cecil, Willie Mabel, Stephen Ray and Sue Thaggard"},
+ eula:{img:"https://images.findagrave.com/photos/2022/170/71696321_52e0c324-34d9-4159-b0fb-d492eb547475.png?size=photos250",imgc:"Photo from Find a Grave, memorial 71696321. About 1923, age 19. Photo added by ab_102.",n:"Eula Jane Neville",aka:"\"Granny Thaggard\"",y:"1904–1996",b:"Mar 8, 1904",d:"Oct 26, 1996",proof:"record",f:"simon",m:"nona",
+  sib:"William Gesmon, Charles Jackson, Leroy Felton, Simon Melvin \"Sam\" and Eugene Ottis Neville; Maggie Neville Calhoun, Lila Neville Edwards, Lenna Lee Neville Harford",
+  notes:"This is your Neville line, the one family stories said came from Great Britain.",src:[["Find a Grave",FG("71696321/eula-jane-thaggard")]]},
+
+ roy:{img:"https://images.findagrave.com/photos/2022/204/84752805_5a5c75a8-4388-45e4-87be-fbc34ab74bd1.jpeg?size=photos250",imgc:"Photo from Find a Grave, memorial 84752805. Photo added by Jayme Jackson McCall.",n:"Roy Lee \"RL\" Dixon",y:"1899–1993",b:"Feb 15, 1899, Fort White, Columbia County, FL (his WWII draft card)",aka:"Leroy Dixon (how his marriage records are indexed); born Roy Lee Waters (family account, working lead, unproven)",d:"Jun 16, 1993, Taylor County, FL",bur:"Woodlawn Cemetery, Perry, FL",proof:"record",
+  sp:"Ollie Isabelle Carmichael, married 1915, Lafayette County, FL",
+  notes:"Working lead (William, 2026-11-07): the tree goes with Waters as his birth surname, parents unknown Waters, until records say otherwise. Adopted, according to family. His grandson Wendell believes he was originally a Waters and had a sister named Lois. It is not known if Waters was his birth family or an earlier family that raised him. Your grandfather Bobby Roy Dixon was named after him. His birth parents and his adoptive parents are not known yet. This may be why he does not show up as a Dixon child in the indexed 1900 or 1910 census. Another clue: his son Hugh's middle name was Maddox. Possible adoptive family: William Augustus Dixon (1856–1923) and Maggie Brim, in the same county, with children born in 1895 and 1897. Maggie was Ollie's aunt. Not proven. DNA note: you share 5.88% with his son Thornton, which fits Hugh and Thornton being full brothers. New clue: on his 1942 draft card Roy himself wrote his birthplace as Fort White, Florida. In 1942 he worked for Putnam Lumber Co. in Cross City, Dixie County. His marriage records call him \"Leroy Dixon\". So a search for his birth family should start around Fort White (Columbia County), under the names Roy, Leroy, or Lee.",src:[["WWII draft card, 1942","https://www.familysearch.org/ark:/61903/1:1:Q2C5-61N4"],["Find a Grave",FG("84752805/roy_lee-dixon")],["FamilySearch KZ3N-FNB",FS("KZ3N-FNB")]]},
+ ollie:{img:"https://images.findagrave.com/photos/2022/204/84752799_32027962-a5c1-43cc-9267-0e4d32315344.jpeg?size=photos250",imgc:"Photo from Find a Grave, memorial 84752799. Photo added by Jayme Jackson McCall.",n:"Ollie Isabelle Carmichael",y:"1897–1966",b:"Jan 26, 1897, Perry, FL",d:"Jun 8, 1966, Lyons, GA",bur:"Woodlawn Cemetery, Perry, FL",proof:"record",f:"jmc",m:"brim",
+  sib:"James Duncan (1891–1970), Flossie Mae Cross (1902–1985), Thelma Ward (1911–2006), and three who died as babies",src:[["Find a Grave",FG("84752799/ollie_isabelle-dixon")]]},
+ aej:{img:"https://images.findagrave.com/photos/2022/159/161443987_58b88845-9df7-4500-bf9c-7dabdce444fc.jpeg?size=photos250",imgc:"Photo from Find a Grave, memorial 161443987. Photo added by Nightmoths.",star:"A teacher for nearly 40 years, and ran a spring-water bottling business.",n:"Andrew Edwin Jackson",y:"1889–1963",b:"Jan 29, 1889, Taylor County, FL",d:"Jan 24, 1963, Taylor County, FL",bur:"Woodlawn Cemetery, Perry, FL",proof:"record",f:"jaj",m:"stephens",
+  sib:"Festus Stephen, James Ryle, John Alexander, Wyatt Thomas and Grover Cleveland Jackson",
+  notes:"Grew up in the Fenholloway area. Taught school for nearly 40 years and was principal of the Foley school for 22 years. He and his sons also ran a water-bottling business at Fenholloway Springs. Six children: Edwin, Melba, Ewart, Ernest, Myrtice and Earl. The family has a story of being related to President Andrew Jackson. His name may be part of how the story started, but that is not proven either way. No record found so far links the family to the president.",src:[["Find a Grave",FG("161443987/andrew_edwin-jackson")],["Perry newspaper, Hendry reunion story, April 1998 (family copy)",""]]},
+ lillian:{n:"Lillian Lorena Wilder",y:"1892–1968",b:"Aug 18, 1892, Taylor County, FL",d:"Sep 7, 1968, Taylor County, FL",bur:"Woodlawn Cemetery, Perry, FL",proof:"record",f:"jmw",m:"hendry",sp:"Andrew Edwin Jackson, married Jan 8, 1911, Taylor County, FL",src:[["Find a Grave",FG("161444051/lillian_lorena-jackson")],["FamilySearch KPQ5-DGQ",FS("KPQ5-DGQ")]]},
+ jmw:{n:"Jeremiah M. Wilder",y:"1847–1922",b:"Feb 16, 1847, Thomas County, GA",d:"Sep 13, 1922, Fenholloway, FL",proof:"record",f:"ttw",m:"nas",src:[["FamilySearch KPQ5-DMC",FS("KPQ5-DMC")]]},
+ hendry:{f:"hendry_2",m:"hendry_3",n:"Lydia M. Hendry",y:"1852–1926",proof:"record",notes:"Part of the large Robert M. Hendry family of Taylor County, FL, known as the 'Big Hendry Clan.' The clan held yearly reunions.",src:[["FamilySearch 2Z83-PXF",FS("2Z83-PXF")]]},
+ ttw:{n:"Thomas T. Wilder",y:"1809–1873",b:"1809, Screven County, GA",d:"1873, Florida",bur:"Shiloh Cemetery, Perry, FL",f:"thw",m:"clyatt",proof:"record",sp:"Nancy Ann Stephens, married about 1831, Georgia",notes:"Ten children. Moved the family from Georgia to Taylor County, FL.",src:[["FamilySearch KLQ3-2TV",FS("KLQ3-2TV")]]},
+ nas:{n:"Nancy Ann Stephens",y:"1814–1881",b:"1814, Savannah, GA",proof:"record",notes:"Parents not found yet.",src:[["FamilySearch KH4F-DWR",FS("KH4F-DWR")]]},
+ thw:{f:"thw_2",m:"thw_3",n:"Thomas Hopkins Wilder",y:"1770–1818",b:"1770, Effingham County, GA",d:"1818, Screven County, GA",proof:"check",sp:"Elizabeth Clyatt, married about 1796, Effingham County, GA",notes:"From a FamilySearch tree with no sources attached. The same tree names his parents as William Wilder and Elizabeth Mills of South Carolina.",src:[["FamilySearch KLQ3-RNJ",FS("KLQ3-RNJ")]]},
+ clyatt:{n:"Elizabeth Clyatt",y:"1773–1860",proof:"check",src:[["FamilySearch KFLD-LV3",FS("KFLD-LV3")]]},
+ neill1:{n:"Neill Archibald Thaggard Sr.",y:"1864–1943",b:"Aug 1864, North Carolina",d:"Aug 1, 1943, Claxton, GA",proof:"record",f:"slt",m:"mcmillan",sp:"Susie Kathleen Rogers, married Dec 13, 1894, Tattnall County, GA",src:[["FamilySearch LVHY-88R",FS("LVHY-88R")]]},
+ rogers:{f:"rogers_2",m:"rogers_3",n:"Susie Kathleen Rogers",y:"1877–1938",proof:"record",src:[["FamilySearch LVHY-86G",FS("LVHY-86G")]]},
+ slt:{n:"Stephen Leonard Thagard",y:"1825–1907",b:"Jun 6, 1825, Cumberland County, NC",d:"Jul 4, 1907, Cumberland County, NC",bur:"Rockfish Presbyterian Church, NC",proof:"record",f:"jtt",m:"susanna",sp:"Janett McMillan",
+  notes:"Cumberland County, NC was settled by Highland Scots. Names like Neill Archibald and McMillan point to Scottish roots on this line.",src:[["FamilySearch LZDV-78M",FS("LZDV-78M")]]},
+ mcmillan:{n:"Janett McMillan",y:"b. 1830",proof:"record",notes:"McMillan is a Scottish Highland name.",src:[["FamilySearch LZDV-785",FS("LZDV-785")]]},
+ jtt:{n:"James T. Thagard",y:"1801–1861",b:"Jan 30, 1801, Cedar Creek, Cumberland County, NC",d:"May 16, 1861, Cedar Creek, NC",proof:"record",f:"gwt",m:"jessop",sp:"Susanna Hollingsworth, married Jul 30, 1821, Cumberland County, NC",notes:"Fifteen children.",src:[["FamilySearch LCQC-MMC",FS("LCQC-MMC")]]},
+ gwt:{f:"gwt_2",m:"gwt_3",n:"George Washington Thagard Sr.",y:"1750–1835",proof:"check",sp:"Mary Jessop, married 1785, Cumberland County, NC",notes:"From a FamilySearch tree. Not checked against records yet.",src:[["FamilySearch L7FR-3F2",FS("L7FR-3F2")]]},
+ jessop:{f:"jessop_2",m:"jessop_3",n:"Mary Jessop",y:"1772–1830",proof:"check",src:[["FamilySearch LJK2-X33",FS("LJK2-X33")]]},
+ susanna:{n:"Susanna Hollingsworth",y:"1802–1886",proof:"record",notes:"Hollingsworth also appears on your dad's side (Lettie Hollingsworth). No link between the two found yet.",src:[["FamilySearch LCJW-33B",FS("LCJW-33B")]]},
+ simon:{n:"Simon Lamar Neville",y:"1861–1934",b:"Nov 28, 1861, Bulloch County, GA",d:"Jul 16, 1934, Savannah, GA",proof:"record",f:"thomas",m:"maryj",sp:"Estella \"Nona\" Williams, married 1890",
+  sib:"Peter Love, Charles J. P. and Thomas Butler Nevil, plus seven half-siblings",notes:"Nine children. The newspaper spelled the name Nevils.",src:[["Find a Grave","https://www.findagrave.com/memorial/71696321/eula-jane-thaggard"]]},
+ nona:{n:"Estella \"Nona\" Williams",y:"1875–1953",b:"Jun 15, 1875, Bulloch County, GA",d:"Dec 11, 1953, Bulloch County, GA",proof:"record",f:"elderw",m:"deloach"},
+
+ jmc:{n:"Jackson Morgan Carmichael",y:"1862–1948",bur:"Clayland Baptist Church Cemetery, Live Oak, FL",proof:"record",f:"duncan",m:"sophronia",notes:"A Mason. Carmichael is a Scottish name.",src:[["Find a Grave",FG("42086796/jackson_morgan-carmichael")]]},
+ brim:{n:"Nancy Jane Brim",y:"1872–1923",bur:"Clayland Baptist Church Cemetery, Live Oak, FL",proof:"record",f:"jbrim",m:"quiett",sib:"Maggie Brim Dixon, James, Isabell Mills, John Gideon, Will and George Mack Brim",src:[["Find a Grave","https://www.findagrave.com/memorial/42086795/nancy_%E2%9D%A4%EF%B8%8F_jane-carmichael"]]},
+ jaj:{n:"James Andrew \"Jim\" Jackson",y:"1847–1934",b:"Dec 28, 1847 (family record says 1848), Alabama",d:"Nov 3, 1934",proof:"record",f:"rjj",m:"awtry",sp:"Jane Georgianne Stephens, married 1876, Madison, FL",
+  sib:"Children: Festus S. (1870), Shellie Jackson Wilder Bennett, Wyatt, James R., Andrew Edwin (1889), John A., Grover Cleveland, Tom C. and Julia S.",
+  notes:"A Jackson family record kept by relatives calls him James Andrew \"Jim\" Jackson. A FamilySearch tree calls him James Allan. The family record is more likely right, since the name Andrew was passed to his son.",src:[["Jackson descendants record, updated 2013 (family copy)",""],["FamilySearch KG1K-RQB",FS("KG1K-RQB")]]},
+ stephens:{n:"Jane Georgianne Stephens",y:"1858–1951",proof:"record"},
+ thomas:{n:"Thomas Nevil",y:"1808–1870",b:"Mar 12, 1808, Bulloch County, GA",d:"Oct 21, 1870, Bulloch County, GA",proof:"record",f:"jacob",
+  sp:"Rachael Parker (married 1835), then Mary E. Jones (married 1859)",notes:"The family spelled the name Nevil, Nevils and Neville.",src:[["Find a Grave","https://www.findagrave.com/memorial/136366588/thomas-nevil"],["FamilySearch LTCV-LG8",FS("LTCV-LG8")]]},
+ maryj:{n:"Mary E. Jones",y:"1838–1927",proof:"record",f:"wmj",m:"hendricks",notes:"Married Norman W. Rushing after Thomas died."},
+ elderw:{f:"elderjohn",m:"fnessmith",n:"Elder William M. Williams",y:"1839–1915",proof:"record",notes:"A church elder. Parents: Elder John G. Williams and Frances Nessmith."},
+ deloach:{f:"jcdeloach",m:"afrier",n:"Sarah Jane DeLoach",y:"1837–1925",b:"Sep 12, 1837, Bulloch County, GA",proof:"record",notes:"Parents: Capt. John Calvin \"Jack\" DeLoach Sr. (1796–1887) and Ardelia Frier (1801–1880). Her granddaughter Nona was named Estella Lenora Ardelia after Ardelia Frier."},
+
+ duncan:{n:"Duncan Greenberry Carmichael",y:"1816–1875",b:"Dec 16, 1816, Milledgeville, GA",d:"1875, Taylor County, FL",proof:"record",f:"duncan1",m:"wilcher",
+  sp:"Winnie Johnson (married 1838, died 1846), then Sophronia Leaptrot",notes:"His first wife Winnie died in 1846. Their sons John Wilcher and Duncan Carroll Carmichael are half-brothers of your ancestor Jackson Morgan Carmichael. The name Wilcher came from Duncan's mother.",src:[["FamilySearch KJHQ-2W9",FS("KJHQ-2W9")]]},
+ duncan1:{f:"duncan1_2",n:"Duncan Carmichael",y:"b. about 1778",proof:"check",notes:"From a FamilySearch tree with no sources attached. Carmichael is a Scottish name. Whether he or his parents came from Scotland is not known.",src:[["FamilySearch K4G3-42L",FS("K4G3-42L")]]},
+ wilcher:{f:"wilcher_2",m:"wilcher_3",n:"Jane W. Wilcher",y:"1785–1817",proof:"check",notes:"From a FamilySearch tree. The name Wilcher was passed down as a middle name to her grandson John Wilcher Carmichael, which supports the link.",src:[["FamilySearch KJWX-RNJ",FS("KJWX-RNJ")]]},
+ sophronia:{f:"sophronia_2",m:"sophronia_3",n:"Sophronia Vastine Leaptrot",y:"1828–1884",b:"Apr 29, 1828, Washington County, GA",d:"1884, Taylor County, FL",proof:"record"},
+ jbrim:{star:"Marked as a veteran on his grave.",n:"John Brim",y:"1832–1925",b:"Feb 22, 1832, Houston County, GA",d:"Mar 18, 1925, Suwannee County, FL",proof:"record",notes:"Veteran."},
+ quiett:{n:"Nancy Ann Quiett",y:"1841–1925",b:"Nov 20, 1841, Tennessee",proof:"record"},
+ rjj:{n:"Robert J. Jackson",y:"1809–1863",b:"About 1809, Tennessee",d:"1863, Llano, TX",proof:"check",notes:"From a FamilySearch tree with no sources. That tree gives his son's middle name as Allan, but the family record says Andrew. So this link is doubtful.",src:[["FamilySearch LCJ4-G44",FS("LCJ4-G44")]]},
+ awtry:{n:"Elizabeth Ann Awtry",y:"1822–1901",proof:"check",notes:"Married Robert J. Jackson in 1842, Marengo County, AL."},
+ jacob:{n:"Jacob Neville",y:"1769–1863",b:"1769, St. George Parish, GA",d:"May 1863, Effingham County, GA",proof:"check",f:"johno",notes:"FamilySearch lists him as Thomas's father. John Oliver Nevil married in 1768, so Jacob fits as his son.",src:[["FamilySearch LDBH-RR9",FS("LDBH-RR9")]]},
+ wmj:{n:"William Mitchell Jones Sr.",y:"1813–1877",b:"Nov 24, 1813, Tattnall County, GA",proof:"record"},
+ hendricks:{f:"jhend",m:"ebrewton",n:"Nancy Hendricks",y:"1820–1907",b:"Feb 17, 1820, Tattnall County, GA",proof:"record",notes:"Parents: John \"Jack\" Hendricks and Elmira Brewton."},
+ johno:{star:"Revolutionary War soldier. Nevil\u0027s Creek Church, the creek and the town of Nevils, GA are named for him.",n:"John Oliver Nevil",y:"1744–1804",b:"1744, Beaufort County, NC",d:"1804, Nevils, Bulloch County, GA",proof:"check",f:"lore",
+  sp:"Frances Ann Mixon, married 1768",notes:"Revolutionary War soldier in the Georgia and South Carolina militias. The DAR placed a memorial for him in 1931. According to the Primitive Baptist Library's Bulloch County history, Nevil's Creek Church (founded 1790) and the creek were both named for him. The community of Nevils grew up there. Find a Grave notes his actual grave is at the church's original site, about a mile from the memorial. Likely your 7× great-grandfather.",
+  src:[["Primitive Baptist Library, Bulloch County history","http://www.pblib.org/bullochga.html"],["WikiTree","https://www.wikitree.com/wiki/Neville-2363"],["Nevils Creek church","https://vanishinggeorgia.com/2017/11/27/nevils-creek-old-line-primitive-baptist-church-bulloch-county/"]]},
+ lore:{star:"Family lore says this line came to Maryland on the Ark and the Dove in 1634.",n:"John Neville of Gloucestershire",y:"about 1612–1664",b:"Gloucestershire, England",proof:"lore",notes:"Online trees say the family descends from him, and that he came to Maryland on the Ark and the Dove in 1634. These trees cite no records for the links, so treat this as family lore."},
+ hendry_2:{"n": "Robert McFail Hendry", "y": "1816-1888", "proof": "check", "notes": "Lydia's father. Online trees make him a brother of James Edward Hendry, whose son Francis Asbury Hendry is the man Hendry County, Florida is named after. That would make Francis A. Hendry Lydia's first cousin. From a FamilySearch family tree. Not checked against records yet.", "f": "hendry_4", "m": "hendry_5", "star": "Brother of James Edward Hendry, whose son is the namesake of Hendry County, Florida (per online trees)."},
+ hendry_3:{"n": "Martha Ann Carlton", "y": "1820-1900", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "hendry_6", "m": "hendry_7"},
+ hendry_4:{"n": "William Hendry", "y": "1783-1840", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "hendry_8", "m": "hendry_9"},
+ hendry_5:{"n": "Nancy Ann McFail", "y": "1786-1840", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "hendry_10", "m": "hendry_11"},
+ hendry_6:{"n": "John Kenion Carlton", "y": "1775-1868", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "hendry_12", "m": "hendry_13"},
+ hendry_7:{"n": "Nancy Ann Alderman", "y": "1775-1867", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "hendry_14", "m": "hendry_15"},
+ hendry_8:{"n": "Robert Hendry Sr.", "y": "1752-1830", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ hendry_9:{"n": "Ann Lee", "y": "1752-1834", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ hendry_10:{"n": "James Eli McFail", "y": "1760-1818", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ hendry_11:{"n": "Judith Henry", "y": "1767-1850", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ hendry_12:{"n": "William Thomas Carleton Sr.", "y": "1747-1795", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ hendry_13:{"n": "Martha Thomas", "y": "1751-1810", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ hendry_14:{"n": "David Alderman", "y": "1749-1831", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ hendry_15:{"n": "Jemima Hall", "y": "1756-1832", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ thw_2:{"n": "William Wilder", "y": "1750-1830", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "thw_4"},
+ thw_3:{"n": "Elizabeth Mills", "y": "1750-1830", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "thw_6"},
+ thw_4:{"n": "Hopkins Wilder", "y": "d. 1792", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ thw_6:{"n": "Thomas Mills", "y": "b. 1725", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ duncan1_2:{"n": "John Carmichael", "y": "b. 1768", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ wilcher_2:{"n": "Jeremiah H. Wilcher", "y": "1760-1830", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ wilcher_3:{"n": "Jenney May Cummings", "y": "1764-1831", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ gwt_2:{"n": "Bertel Jensen Thagaard", "y": "1692-1759", "proof": "check", "notes": "Born in Denmark, per online trees. He would have been about 58 when George Washington Thagard was born, so this link is doubtful. From a FamilySearch family tree. Not checked against records yet.", "f": "gwt_4", "m": "gwt_5", "star": "Online trees trace the Thagard family to Denmark, where the name was spelled Thagaard."},
+ gwt_3:{"n": "Maren Andersdatter", "y": "1687-1750", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "gwt_6"},
+ gwt_4:{"n": "Jens Lauridsen Thagaard", "y": "1644-1714", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "gwt_8", "m": "gwt_9"},
+ gwt_5:{"n": "Margrethe Pedersdatter", "y": "1655-1729", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ gwt_6:{"n": "Anders Jensen Glerup", "y": "1643-1721", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ gwt_8:{"n": "Laurs Thagaard", "y": "b. 1600", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ gwt_9:{"n": "Margrethe Vester Toftum", "y": "1602-1699", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ jessop_2:{"n": "Isaac Jessup", "y": "1730-1794", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "jessop_4", "m": "jessop_5"},
+ jessop_3:{"n": "Elizabeth Ann Jones", "y": "1743-1833", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "jessop_6"},
+ jessop_4:{"n": "Isaac Jessop", "y": "b. 1691", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ jessop_5:{"n": "Elizabeth Tatrall", "y": "b. 1690", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ jessop_6:{"n": "Isaac Jones", "y": "", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ rogers_2:{"n": "James Jackson Rogers", "y": "1844-1914", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "rogers_4", "m": "rogers_5"},
+ rogers_3:{"n": "Sarah E. Eason", "y": "1845-1914", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "rogers_6", "m": "rogers_7"},
+ rogers_4:{"n": "Uriah Allen Rogers", "y": "1808-1882", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "rogers_8", "m": "rogers_9"},
+ rogers_5:{"n": "Martha Brewton", "y": "1813-1890", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "rogers_10", "m": "rogers_11"},
+ rogers_6:{"n": "Abraham Darlington Eason", "y": "1816-1887", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "rogers_12", "m": "rogers_13"},
+ rogers_7:{"n": "Susan Tillman", "y": "1827-1907", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "rogers_14", "m": "rogers_15"},
+ rogers_8:{"n": "Thomas Stephen Rogers", "y": "1786-1873", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ rogers_9:{"n": "Asha Everett", "y": "1787-1855", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ rogers_10:{"n": "Nathan Brewton Sr.", "y": "1763-1855", "proof": "check", "notes": "Same person as Nathan Brewton Sr. on the Neville side. You descend from him twice. From a FamilySearch family tree. Not checked against records yet."},
+ rogers_11:{"n": "Nancy Thompson Fontaine", "y": "1777-1864", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ rogers_12:{"n": "William Eason", "y": "1771-1831", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ rogers_13:{"n": "Sarah Elizabeth \"Sally\" Mattox", "y": "1777-1859", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ rogers_14:{"n": "Joseph Isaiah Tillman", "y": "1792-1845", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ rogers_15:{"n": "Catherine Chewning", "y": "1796-1830", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ sophronia_2:{"n": "John Liptrot", "y": "1798-1875", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "sophronia_4", "m": "sophronia_5"},
+ sophronia_3:{"n": "Mary Elizabeth Adams", "y": "1800-1850", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "sophronia_6"},
+ sophronia_4:{"n": "Aquilla Leaptrot", "y": "1775-1833", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "sophronia_8"},
+ sophronia_5:{"n": "Mildred Pierce", "y": "1785-1850", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ sophronia_6:{"n": "Noah Adams", "y": "1771-1849", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ sophronia_8:{"n": "Boling Liptrot", "y": "b. 1755", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ fhf_2:{"n": "Henry Richard Francis", "y": "1819-1867", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "fhf_4", "m": "fhf_5"},
+ fhf_3:{"n": "Sarah Snook", "y": "1827-1906", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "fhf_6", "m": "fhf_7"},
+ fhf_4:{"n": "Josiah Francis", "y": "1788-1864", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "fhf_8", "m": "fhf_9"},
+ fhf_5:{"n": "Elizabeth Tovey", "y": "1777-1873", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "fhf_10", "m": "fhf_11"},
+ fhf_6:{"n": "Richard Snook", "y": "1792-1835", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "fhf_12", "m": "fhf_13"},
+ fhf_7:{"n": "Martha Ruddock", "y": "1789-1880", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "fhf_14", "m": "fhf_15"},
+ fhf_8:{"n": "Thomas Francis", "y": "1752-1825", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ fhf_9:{"n": "Elizabeth Atkins", "y": "1749-1820", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ fhf_10:{"n": "Maurice Francis Tovey", "y": "1750-1831", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ fhf_11:{"n": "Mary Mopsy", "y": "1758-1842", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ fhf_12:{"n": "William Snook", "y": "1752-1837", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ fhf_13:{"n": "Sarah Clark", "y": "1757-1827", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ fhf_14:{"n": "William Ruddock", "y": "1760-1803", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ fhf_15:{"n": "Margaret Ruddock", "y": "1759-1836", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ fej_2:{"n": "William Philip Jones", "y": "1834-1917", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "fej_4", "m": "fej_5"},
+ fej_3:{"n": "Ellen Brunt Huxtable", "y": "1839-1903", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "fej_6", "m": "fej_7"},
+ fej_4:{"n": "Aaron Jones", "y": "1789-1855", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "fej_8", "m": "fej_9"},
+ fej_5:{"n": "Elizabeth Sampson", "y": "1806-1882", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "fej_10", "m": "fej_11"},
+ fej_6:{"n": "Philip Horatio Huxtable", "y": "1816-1892", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "fej_12", "m": "fej_13"},
+ fej_7:{"n": "Ellen Palmer", "y": "1813-1886", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "fej_14", "m": "fej_15"},
+ fej_8:{"n": "John Jones", "y": "1767-1813", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ fej_9:{"n": "Ruth Phillips", "y": "1758-1850", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ fej_10:{"n": "Robert Sampson", "y": "1779-1844", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ fej_11:{"n": "Mary Durston", "y": "b. 1781", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ fej_12:{"n": "John Huxtable", "y": "1794-1869", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ fej_13:{"n": "Harriett Gristock", "y": "1796-1839", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ fej_14:{"n": "James Palmer", "y": "1790-1845", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ fej_15:{"n": "Hannah Brunt", "y": "b. 1780", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ jld_2:{"n": "Richard R. Dowdy", "y": "d. 1832", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "jld_4", "m": "jld_5"},
+ jld_3:{"n": "Penelope Lane", "y": "1756-1832", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ jld_4:{"n": "Richard Dowdy", "y": "1730-1830", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "jld_8"},
+ jld_5:{"n": "Drusella Amie Martin", "y": "1746-1826", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ jld_8:{"n": "Thomas Dowdy", "y": "1698-1733", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ gaa_2:{"n": "Hezekiah Bell Anderson", "y": "1775-1826", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "gaa_4", "m": "gaa_5"},
+ gaa_3:{"n": "Mary Alice Conner", "y": "1792-1870", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "gaa_6", "m": "gaa_7"},
+ gaa_4:{"n": "James Anderson", "y": "", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ gaa_5:{"n": "Jane Partee", "y": "1752-1848", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ gaa_6:{"n": "James Connor", "y": "1768-1839", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ gaa_7:{"n": "Mary Purnell", "y": "1775-1809", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ dch_2:{"n": "Joshua Hawkins", "y": "1750-1832", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "dch_4", "m": "dch_5"},
+ dch_3:{"n": "Susan \"Sukey\" Johnson", "y": "1760-1844", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "dch_6", "m": "dch_7"},
+ dch_4:{"n": "Joshua Hawkins", "y": "1725-1803", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "dch_8", "m": "dch_9"},
+ dch_5:{"n": "Sarah Cook", "y": "1724-1808", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "dch_10", "m": "dch_11"},
+ dch_6:{"n": "Joseph Jonathan Johnson", "y": "1721-1761", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "dch_12", "m": "dch_13"},
+ dch_7:{"n": "Mary Bird", "y": "1724-1780", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "dch_14", "m": "dch_15"},
+ dch_8:{"n": "Michael Hawkins Sr.", "y": "1685-1752", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ dch_9:{"n": "Agnes Eaton", "y": "1695-1755", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ dch_10:{"n": "Matthew Peter Harberd Cook", "y": "1700-1799", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ dch_11:{"n": "Elizabeth Eaton", "y": "1700-1780", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ dch_12:{"n": "Joseph Johnson", "y": "1695-1761", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ dch_13:{"n": "Mary Elizabeth Walker", "y": "1699-1781", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ dch_14:{"n": "Andrew Bird III", "y": "1698-1750", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ dch_15:{"n": "Magdelene Jonasson", "y": "1703-1750", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ sws_2:{"n": "Joseph Smith", "y": "1773-1839", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "sws_4", "m": "sws_5"},
+ sws_3:{"n": "Catherine Gourley", "y": "1780-1828", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "sws_6", "m": "sws_7"},
+ sws_4:{"n": "David Smith", "y": "1735-1801", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ sws_5:{"n": "Hannah Hibbs", "y": "1736-1785", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "sws_10", "m": "sws_11"},
+ sws_6:{"n": "Hugh Gourley", "y": "1747-1832", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "sws_12", "m": "sws_13"},
+ sws_7:{"n": "Nancy A. Murphy", "y": "1747-1839", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ sws_10:{"n": "Jeremiah Hibbs", "y": "1706-1796", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ sws_11:{"n": "Hannah Jones", "y": "1708-1736", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ sws_12:{"n": "John Gowerly", "y": "1728-1801", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ sws_13:{"n": "Elizabeth Burgess", "y": "1730-1802", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ wjl_2:{"n": "Larkin de Lafayette Landrum", "y": "1780-1842", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "wjl_4", "m": "wjl_5"},
+ wjl_3:{"n": "Jane \"Jenny\" Watts", "y": "1781-1852", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ wjl_4:{"n": "Joseph Landrum", "y": "b. 1739", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "wjl_8", "m": "wjl_9"},
+ wjl_5:{"n": "Elizabeth Talbert", "y": "1736-1805", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ wjl_8:{"n": "Joseph Landrum Jr.", "y": "1700-1800", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ wjl_9:{"n": "Mary Crew Buckner", "y": "1700-1755", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ newsom_2:{"n": "Kinchen Newsom", "y": "1775-1841", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "newsom_4", "m": "newsom_5"},
+ newsom_3:{"n": "Mary Dye", "y": "1778-1825", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ newsom_4:{"n": "Simon Newsom", "y": "1740-1820", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "newsom_8", "m": "newsom_9"},
+ newsom_5:{"n": "Chloe Williamson", "y": "1743-1798", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "newsom_10", "m": "newsom_11"},
+ newsom_8:{"n": "Thomas Newsom", "y": "1720-1799", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ newsom_9:{"n": "Hannah Kinchen", "y": "1720-1795", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ newsom_10:{"n": "George Williams Sr.", "y": "1710-1758", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ newsom_11:{"n": "Chloe Priscilla Thomas", "y": "1710-1758", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ clayton_2:{"n": "Daniel Wilson Clayton", "y": "1801-1869", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "clayton_4"},
+ clayton_3:{"n": "Elizabeth Ann Brooke", "y": "1810-1891", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ clayton_4:{"n": "Isham Henry Clayton", "y": "b. 1782", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "clayton_8"},
+ clayton_8:{"n": "Isham Clayton", "y": "b. 1760", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ jnh_2:{"n": "John Hollingsworth", "y": "1794-1876", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "jnh_4", "m": "jnh_5"},
+ jnh_3:{"n": "Rebecca Jane Tidwell", "y": "1799-1866", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ jnh_4:{"n": "Joseph Hollingsworth", "y": "1765-1844", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "jnh_8", "m": "jnh_9"},
+ jnh_5:{"n": "Rosanna Nichols", "y": "1767-1839", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "jnh_10"},
+ jnh_8:{"n": "Abraham Hollingsworth", "y": "1739-1788", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ jnh_9:{"n": "Margaret Wright", "y": "1741-1822", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ jnh_10:{"n": "James Nichols", "y": "1742-1842", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ stowers_2:{"n": "William Floyd Stowers", "y": "1815-1863", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "stowers_4", "m": "stowers_5"},
+ stowers_3:{"n": "Sarah Rodgers", "y": "1813-1853", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "stowers_6", "m": "stowers_7"},
+ stowers_4:{"n": "Benjamin Stowers", "y": "1792-1841", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "stowers_8", "m": "stowers_9"},
+ stowers_5:{"n": "Ann Roebuck", "y": "1795-1874", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "stowers_10", "m": "stowers_11"},
+ stowers_6:{"n": "William A. Rodgers", "y": "1775-1837", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "stowers_12", "m": "stowers_13"},
+ stowers_7:{"n": "Nancy Riddle", "y": "1778-1853", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ stowers_8:{"n": "Lewis Stowers Sr.", "y": "1760-1844", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ stowers_9:{"n": "Joyce Shiflett", "y": "1765-1842", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ stowers_10:{"n": "Maj. Robert James Eubank Roebuck", "y": "1754-1815", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ stowers_11:{"n": "Sarah Blanche Hague", "y": "1761-1819", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ stowers_12:{"n": "Andrew Rogers", "y": "1756-1807", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ stowers_13:{"n": "Lettitia Franks", "y": "1758-1817", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ garrett_2:{"n": "Wesley Robinson Garrett", "y": "1816-1887", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "garrett_4", "m": "garrett_5"},
+ garrett_3:{"n": "Elizabeth Andrea Mercer", "y": "1817-1869", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "garrett_6", "m": "garrett_7"},
+ garrett_4:{"n": "Elisha Garrett", "y": "1788-1853", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "garrett_8", "m": "garrett_9"},
+ garrett_5:{"n": "Nancy Maddison", "y": "1785-1862", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "garrett_10", "m": "garrett_11"},
+ garrett_6:{"n": "Levi J. Mercer", "y": "1789-1879", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "garrett_12", "m": "garrett_13"},
+ garrett_7:{"n": "Frances \"Fanny\" Phoebe Webb", "y": "1794-1855", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "garrett_14", "m": "garrett_15"},
+ garrett_8:{"n": "John Garrett", "y": "1750-1806", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ garrett_9:{"n": "Hannah Harris", "y": "1755-1821", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ garrett_10:{"n": "Jo Maddison", "y": "1750-1812", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ garrett_11:{"n": "Mary Biggars", "y": "b. 1756", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ garrett_12:{"n": "Pvt. Jacob Mercer", "y": "1753-1837", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ garrett_13:{"n": "Jael Green", "y": "1753-1810", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ garrett_14:{"n": "Charles C. Webb", "y": "1767-1849", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ garrett_15:{"n": "Sarah Waggoner", "y": "1757-1799", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ graham_2:{"n": "William Harrison Graham", "y": "1848-1908", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "graham_4", "m": "graham_5"},
+ graham_3:{"n": "Alice F. Brown", "y": "1853-1932", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "graham_6", "m": "graham_7"},
+ graham_4:{"n": "Ishmael Graham", "y": "b. 1803", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "graham_8"},
+ graham_5:{"n": "Eliza", "y": "b. 1815", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ graham_6:{"n": "Maj. James Brown", "y": "1816-1890", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "graham_12", "m": "graham_13"},
+ graham_7:{"n": "Jennett E. Weldon", "y": "1816-1882", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "graham_14", "m": "graham_15"},
+ graham_8:{"n": "Samuel Grayham", "y": "b. 1760", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ graham_12:{"n": "James \"Indian Jim\" Brown", "y": "1763-1858", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ graham_13:{"n": "Mary Goff", "y": "b. 1767", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ graham_14:{"n": "Samuel Weldon Jr.", "y": "1791-1875", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ graham_15:{"n": "Mary \"Polly\" Crumb", "y": "1794-1867", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ pitts_2:{"n": "John R. Pitts", "y": "1765-1840", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "pitts_4", "m": "pitts_5"},
+ pitts_3:{"n": "Nancy Alice Horton", "y": "1795-1874", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ pitts_4:{"n": "Capt. John Pitts", "y": "1740-1787", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "pitts_8", "m": "pitts_9"},
+ pitts_5:{"n": "Frances Griffin", "y": "1756-1841", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "pitts_10", "m": "pitts_11"},
+ pitts_8:{"n": "Col. John Pitts", "y": "1702-1760", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ pitts_9:{"n": "Olive Hardy", "y": "1705-1761", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ pitts_10:{"n": "Hardy Griffin", "y": "1716-1797", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ pitts_11:{"n": "Mary Whitfield", "y": "1725-1792", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ coats_2:{"n": "John D. Coats", "y": "b. 1782", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "coats_4", "m": "coats_5"},
+ coats_3:{"n": "Elizabeth Williams", "y": "b. 1794", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "coats_6", "m": "coats_7"},
+ coats_4:{"n": "Nathaniel Coates Sr.", "y": "1750-1816", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "coats_8", "m": "coats_9"},
+ coats_5:{"n": "Martha Lucinda Lamar", "y": "1750-1826", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "coats_10", "m": "coats_11"},
+ coats_6:{"n": "William Williams Sr.", "y": "b. 1765", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ coats_7:{"n": "Nancy Tompkins", "y": "b. 1772", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet.", "f": "coats_14", "m": "coats_15"},
+ coats_8:{"n": "William Henry Coates", "y": "1725-1780", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ coats_9:{"n": "Sarah Young", "y": "1733-1817", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ coats_10:{"n": "John William Lamar Sr.", "y": "1713-1756", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ coats_11:{"n": "Rachel Grenville", "y": "1718-1786", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ coats_14:{"n": "Humphrey Tompkins", "y": "1740-1813", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ coats_15:{"n": "Amelia Eubanks", "y": "1742-1829", "proof": "check", "notes": "From a FamilySearch family tree. Not checked against records yet."},
+ elderjohn:{"n": "Elder John G. Williams", "y": "1809–1884", "proof": "record", "b": "Georgia", "f": "garrettw", "notes": "Linked through family pages on Find a Grave. Not checked against original records yet.", "src": [["Find a Grave", "https://www.findagrave.com/memorial/70487037"]]},
+ fnessmith:{"n": "Frances H. C. Nessmith", "y": "1809–1874", "proof": "record", "f": "jmnesmith", "m": "ehandley", "notes": "Linked through family pages on Find a Grave. Not checked against original records yet.", "src": [["Find a Grave", "https://www.findagrave.com/memorial/70487629"]]},
+ garrettw:{"n": "Garrett Williams Sr.", "y": "1765–1818", "proof": "check", "b": "Duplin County, NC", "notes": "Linked through family pages on Find a Grave. Not checked against original records yet.", "src": [["Find a Grave", "https://www.findagrave.com/memorial/170118550"]]},
+ jmnesmith:{"n": "James Madison Nesmith Jr.", "y": "1774–1845", "proof": "check", "b": "Burke County, GA", "notes": "Linked through family pages on Find a Grave. Not checked against original records yet.", "src": [["Find a Grave", "https://www.findagrave.com/memorial/21407783"]]},
+ ehandley:{"n": "Elizabeth Handley", "y": "1773–1832", "proof": "check", "b": "Georgia", "notes": "Find a Grave links her to Gov. George Handley and Sarah Howe, but that is almost certainly wrong: Handley only came to Georgia in 1775 and married Sarah Howe in 1780, years after Elizabeth was born, and their known child was a son, Thomas. So her real parents are unknown. Linked through family pages on Find a Grave. Not checked against original records yet.", "src": [["Find a Grave", "https://www.findagrave.com/memorial/21407803"]]},
+ jcdeloach:{"n": "Capt. John Calvin \"Jack\" DeLoach Sr.", "y": "1796–1887", "proof": "record", "b": "Tattnall County, GA", "f": "jhdeloach", "m": "edurrence", "notes": "Linked through family pages on Find a Grave. Not checked against original records yet.", "src": [["Find a Grave", "https://www.findagrave.com/memorial/47991550"]]},
+ afrier:{"n": "Ardelia Frier", "y": "1801–1880", "proof": "record", "b": "Georgia", "f": "hfrier", "m": "dfrier", "notes": "Her name was passed down: her great-granddaughter was Estella Lenora Ardelia \"Nona\" Williams. Linked through family pages on Find a Grave. Not checked against original records yet.", "src": [["Find a Grave", "https://www.findagrave.com/memorial/47991585"]]},
+ jhdeloach:{"n": "John Hardy DeLoach", "y": "1762–1819", "proof": "check", "b": "South Carolina", "notes": "Linked through family pages on Find a Grave. Not checked against original records yet.", "src": [["Find a Grave", "https://www.findagrave.com/memorial/38432655"]]},
+ edurrence:{"n": "Elizabeth Durrence", "y": "1775–1840", "proof": "check", "b": "Liberty County, GA", "f": "wdurrence", "m": "ewdurrence", "notes": "Linked through family pages on Find a Grave. Not checked against original records yet.", "src": [["Find a Grave", "https://www.findagrave.com/memorial/181757550"]]},
+ wdurrence:{"n": "Welcome \"William\" Durrence Sr.", "y": "1738–1808", "proof": "check", "b": "Tyrrell County, NC", "f": "sdurrance", "notes": "Linked through family pages on Find a Grave. Not checked against original records yet.", "src": [["Find a Grave", "https://www.findagrave.com/memorial/20936523"]]},
+ ewdurrence:{"n": "Elizabeth Williams", "y": "1755–1820", "proof": "check", "b": "Duplin County, NC", "notes": "Linked through family pages on Find a Grave. Not checked against original records yet.", "src": [["Find a Grave", "https://www.findagrave.com/memorial/20936437"]]},
+ sdurrance:{"n": "Samuel Durrance", "y": "1702–1756", "proof": "check", "b": "Melton Mowbray, England", "notes": "An English immigrant to North Carolina. Linked through family pages on Find a Grave. Not checked against original records yet.", "src": [["Find a Grave", "https://www.findagrave.com/memorial/156895662"]]},
+ hfrier:{"n": "Henderson M. Frier", "y": "1775–1866", "proof": "check", "b": "Bertie County, NC", "notes": "Linked through family pages on Find a Grave. Not checked against original records yet.", "src": [["Find a Grave", "https://www.findagrave.com/memorial/24349532"]]},
+ dfrier:{"n": "Delilah Williams", "y": "1780–1835", "proof": "check", "b": "Duplin County, NC", "notes": "Linked through family pages on Find a Grave. Not checked against original records yet.", "src": [["Find a Grave", "https://www.findagrave.com/memorial/40574510"]]},
+ jhend:{"n": "John \"Jack\" Hendricks", "y": "1795–1837", "proof": "check", "notes": "Linked through family pages on Find a Grave. His children, including daughter Nancy (who married William M. Jones), are reconstructed in the Bowen family research (WikiTree, 2015), written by a descendant of Nancy's. No original record pulled yet. Checked by Faye, Nov 2026.", "src": [["Find a Grave", "https://www.findagrave.com/memorial/241718396"], ["WikiTree - Hendricks sibling list (Bowen)", "https://www.WikiTree.com/wiki/Hendrix-2878"]]},
+ ebrewton:{"n": "Elmira \"Jemima\" Brewton", "y": "1795–1876", "proof": "check", "f": "nbrewton", "m": "nfontaine", "notes": "Listed as a daughter of Nathan Brewton and Nancy Fontaine in two independent descendant-compiled genealogies (the Comer Brewton compilation, 2001, and the Bowen Hendricks/Jones research, 2015), and on WikiTree. Her sons were named John Fontaine Hendricks and Nathan Brewton Hendricks, after this line. No original record naming her as Nathan's daughter has been pulled yet - his 1855 will (Bulloch County) is the document that could settle it. Checked by Faye, Nov 2026.", "src": [["Find a Grave", "https://www.findagrave.com/memorial/30495877"], ["Brewton compilation (Comer, 2001)", "https://www.genealogy.com/forum/surnames/topics/brewton/252/"], ["WikiTree - Brewton genealogy", "https://www.wikitree.com/genealogy/BREWTON"]]},
+ nbrewton:{"n": "Nathan Brewton Sr.", "y": "1762–1855", "proof": "record", "star": "You descend from him twice, through both of Grandma Betty's parents.", "notes": "He shows up twice in your tree: through Eula Neville (via the Jones and Hendricks families) and through Neill Thaggard II (via the Rogers family). So Betty Thaggard's parents were distant cousins. A DAR-approved lineage (member #589721) gives Nathan Brewton (b. about 1765, NC; d. 25 Nov 1855, Tattnall Co., GA) and wife Nancy Fountain, married 1794, as parents of his daughter Nancy Brewton. He died leaving a will, fought over in Brewton v. Brewton, Georgia Supreme Court, 1860 - the will itself (Bulloch County probate) is the record that could settle his daughter Elmira's link for good. Checked by Faye, Nov 2026.", "src": [["Find a Grave", "https://www.findagrave.com/memorial/30495193"], ["DAR descendant record, member 589721", "https://services.dar.org/Public/DAR_Research/search_descendants/?action=list&MyPrimary_Seqn=501073&MyLineageCount=1"], ["Brewton v. Brewton, 30 Ga. 416 (1860)", "https://static.case.law/ga/30/case-pdfs/0416-01.pdf"]]},
+ nfontaine:{"n": "Nancy Fontaine", "y": "1777–1864", "proof": "record", "f": "ff3", "notes": "Married Nathan Brewton on May 18, 1794, in Warren County, GA. Died July 7, 1864, Bulloch County, GA. Her line to Francis Fontaine III is backed by an approved Sons of the American Revolution application. Same person as Nancy Thompson Fontaine on the Rogers line.", "src": [["Sons of the American Revolution application (approved 2008)", "https://sarpatriots.sar.org/application/display/26153"], ["Find a Grave", "https://www.findagrave.com/memorial/30495233"]], "m": "jjohnson"},
+ ff3:{"n": "Francis Fontaine III", "y": "1747–about 1780", "proof": "record", "b": "1747, New Bern, NC", "f": "ffjr", "m": "jjasper", "notes": "A Sons of the American Revolution application, approved in 2008, lists him as a Revolutionary War patriot and the father of Nancy Fontaine, who married Nathan Brewton. Published genealogies list him as the son of Francis \"Frank\" Fontaine Jr. and Ann Jasper. He died in South Carolina during the Revolution.", "src": [["Sons of the American Revolution application (approved 2008)", "https://sarpatriots.sar.org/application/display/26153"], ["Find a Grave", "https://www.findagrave.com/memorial/139318865"]], "star": "Revolutionary War patriot, recognized by the Sons of the American Revolution.", "sp": "Jemima (likely Johnson), married about 1770, Dobbs County, NC"},
+ ffjr:{"n": "Francis \"Frank\" Fontaine Jr.", "y": "1721–1783", "proof": "record", "b": "King William County, VA", "f": "rfrancis", "m": "mglennisson", "notes": "Son of Rev. Francis Fontaine. As a boy he and his brother John were bound to a carpenter by their stepmother. Both moved to New Bern, North Carolina, and worked as carpenters. A 1754 letter from his cousin Peter Fontaine Jr., printed in the family memoir, names them there as \"sons of my late uncle Francis\". He witnessed a will at New Bern in 1750, and his original signature survives in the NC Archives. He married Ann \"Jemima\" Jasper. Published genealogies (Brock's Huguenot Emigration appendix, a 2003 Colleton County, SC Fontaine study) list Francis Fontaine III as their son. The older claim that a \"James Fontaine of New Bern\" was the father looks like a mix-up.", "src": [["Find a Grave", "https://www.findagrave.com/memorial/139318799"]]},
+ jjasper:{"n": "Jamima Ann Jasper", "y": "1721–1756", "proof": "check", "b": "New Bern, NC", "notes": "Linked through family pages on Find a Grave. Not checked against original records yet.", "src": [["Find a Grave", "https://www.findagrave.com/memorial/139318825"]]},
+ rfrancis:{img:"https://upload.wikimedia.org/wikipedia/commons/4/4e/Grace_Church_Yorktown_Virginia_by_Frances_Benjamin_Johnston.jpg",imgc:"Grace Church, Yorktown — his parish church for 26 years. Photo: Frances Benjamin Johnston, Library of Congress","n": "Rev. Francis Fontaine", "y": "1697–1749", "proof": "record", "b": "Cork, Ireland", "f": "jfontaine", "m": "aboursiquot", "sib": "Mary Ann (b. 1690, married Matthew Maury in Ireland in 1716), Rev. Peter Fontaine (rector of Westover Parish, Virginia), John, Moses, Aaron (died young)", "notes": "Born in Cork, Ireland, to French Huguenot refugees. Rector of York-Hampton Parish, Virginia, and professor of Oriental languages at William & Mary. His will, proved in York County on 19 Mar 1749, names his six children: Francis Jr., Mary, John, Thomas, James Maury and Judith. His sons Francis and John moved to New Bern, North Carolina - documented in his nephew Peter Fontaine Jr.'s 1754 letter printed in the family memoir. Checked against records by Faye, Nov 2026.", "src": [["Find a Grave", "https://www.findagrave.com/memorial/68602029"], ["WikiTree - will abstract, York Co. 1749", "https://www.wikitree.com/wiki/Fontaine-18"], ["Memoirs of a Huguenot Family (1853), Peter Fontaine Jr. letters", "https://archive.org/details/memoirsofhugueno1853font"]]},
+ mglennisson:{"n": "Mary Glennisson", "y": "1697–1733", "proof": "check", "b": "Jonzac, France", "notes": "Linked through family pages on Find a Grave. Not checked against original records yet.", "src": [["Find a Grave", "https://www.findagrave.com/memorial/139611216"]]},
+ jfontaine:{img:"https://upload.wikimedia.org/wikipedia/commons/1/1f/James_Fontaine.jpg",imgc:"Frontispiece of his Memoirs (1853), after an original likeness","n": "Rev. Jacques \"James\" Fontaine", "y": "1658–1728", "proof": "record", "b": "Apr 7, 1658, France", "f": "jfont2", "m": "mchaillon", "sp": "Anne Elizabeth Boursiquot, a fellow French refugee, married in England", "star": "A French Huguenot minister who fled persecution in France. His memoir is still read today.", "notes": "A Protestant (Huguenot) minister who escaped France in the 1680s, then lived in England and Ireland. His memoir is a well-known account of Huguenot life. In it he says the family name was originally \"De la Fontaine\". His father dropped the \"De la\" out of humility, because it was a sign of nobility. The memoir traces the family back to John De la Fontaine, born about 1500 in the province of Maine, France, who served in the household of King Francis I. His descent to the North Carolina Fontaines IS documented: his son Francis's 1749 will names the children, and the memoir's own letters (Peter Fontaine Jr., 1754) place Francis's sons in New Bern, NC. The soft spot in the line to William is further down, in Georgia (the Brewton / Hendricks / Jones links), where the proof so far is descendant research rather than original records. Note updated by Faye, Nov 2026.", "src": [["Find a Grave", "https://www.findagrave.com/memorial/68571729"], ["His memoir (Memoirs of a Huguenot Family)", "https://www.baptists.net/history/?p=9487"]]},
+ jfont2:{n:"Rev. Jacques Fontaine",y:"about 1603–1666",b:"about 1603 (he was about 25 when he married in 1628)",d:"1666, after a stroke (apoplexy) that hit him as he came out of his garden. His son was 8.",proof:"check",f:"jdlf2",sp:"1st: Miss Thompson, an Englishwoman, married 1628. 2nd: Marie Chaillon, married 1641",notes:"Protestant minister of the churches of Vaux and Royan, near the coast of western France. Father of the memoir writer. His son's memoir says he was the one who dropped \"De la\" from the family name, out of humility. Details come from his son's memoir.",src:[["Memoirs of a Huguenot Family","https://www.baptists.net/history/?p=9493"],["Memoirs, his death in 1666","https://www.baptists.net/history/?p=9485"]]},
+ mchaillon:{n:"Marie Chaillon",y:"",proof:"check",sp:"Rev. Jacques Fontaine, married 1641",notes:"Mother of the memoir writer, Jacques Fontaine. They had two sons and three daughters. Named in the memoir.",src:[["Memoirs of a Huguenot Family","https://www.baptists.net/history/?p=9493"]]},
+ jdlf2:{n:"Jacques de la Fontaine",y:"",proof:"lore",f:"jdlf1",b:"Province of Maine, France",star:"Fled to La Rochelle after his father was murdered for his Protestant faith. Someone later tried to poison him.",notes:"One of the sons of John De la Fontaine. After his father was killed, he and two brothers fled to La Rochelle, a Protestant stronghold. He was taken in there and married. The memoir says someone tried to poison him, and that he later asked King Henry IV for a pardon. From the family memoir only.",src:[["Memoirs of a Huguenot Family","https://www.baptists.net/history/?p=9491"]]},
+ jdlf1:{n:"John De la Fontaine",y:"born about 1500",proof:"lore",b:"about 1500, Province of Maine, France",star:"Served in the household of King Francis I of France. Killed for his Protestant faith.",notes:"The oldest ancestor named in the family memoir. The son of a nobleman. His father got him a post in the household of King Francis I, and he stayed in royal service under Henry II, Francis II and Charles IX. He and his father became Protestants around 1535. He used his position to protect other Protestants. After he retired, he was murdered for his faith. He had at least four sons. From the family memoir only, written about 150 years after his death.",src:[["Memoirs of a Huguenot Family","https://www.baptists.net/history/?p=9487"]]},
+ aboursiquot:{"n": "Anne Elizabeth Boursiquot", "y": "1665–1721", "proof": "check", "b": "France", "notes": "Escaped France with Jacques Fontaine. Linked through family pages on Find a Grave. Not checked against original records yet.", "src": [["Find a Grave", "https://www.findagrave.com/memorial/68571829"]]},
+ jjohnson:{"n": "Jemima (likely Johnson)", "y": "about 1750–after 1803", "proof": "record", "notes": "Wife of Francis Fontaine III and mother of Nancy Fontaine. Her maiden name is given as Johnson in a Sons of the American Revolution application, but not certain.", "src": [["Sons of the American Revolution application (approved 2008)", "https://sarpatriots.sar.org/application/display/26153"]]}
+};
+const ROOT='you';
+
+/* ---- relationships ---- */
+const kids={}; for(const [id,p] of Object.entries(P)){[p.f,p.m].forEach(x=>{if(x){(kids[x]=kids[x]||[]).push(id)}})}
+const side={you:'you'}; (function mark(id,s){const p=P[id];if(!p)return;if(id!==ROOT)side[id]=s;[p.f,p.m].forEach(x=>x&&mark(x,id===ROOT?(x===P[ROOT].f?'dad':'mom'):s))})(ROOT,'you');
+const genOf={}; (function g(id,n){genOf[id]=n;const p=P[id];[p.f,p.m].forEach(x=>x&&P[x]&&g(x,n+1))})(ROOT,0);
+function relName(id){const n=genOf[id];if(n===0)return'You';const s=side[id]==='dad'?"Dad's side":"Mom's side";const male=P[kids[id]?.[0]]?.f===id;
+ const base=n===1?(male?'Father':'Mother'):n===2?(male?'Grandfather':'Grandmother'):n===3?(male?'Great-grandfather':'Great-grandmother'):((n-2)+'× great-'+(male?'grandfather':'grandmother'));return base+' · '+s}
+
+/* ---- layout: vertical. Ancestors on top, you at the bottom. Extended mode adds blood relatives beside each ancestor. ---- */
+const W=180,H=58,SLOT=194,RH=150,PADX=132,PADY=36,GAP=8,CW=150,CSLOT=158,CH=34,CGAP=4;
+let pos={},SW=0,SH=0,EXT=false,DEPTH=5,SIDE='';
+const stage=document.getElementById('stage'),svg=document.getElementById('links');
+const GL=['You','Parents','Grandparents','Great-grandparents'];
+const dnaIds=new Set(['hugh']); /* Thornton is Hugh's brother */
+function render(){
+ stage.querySelectorAll('.p,.gen-label').forEach(e=>e.remove());
+ const raw={};let leaf=0;
+ (function lay(id){const p=P[id];const ps=genOf[id]>=DEPTH?[]:[p.f,p.m].filter(x=>x&&P[x]&&!(id===ROOT&&SIDE&&x!==(SIDE==='dad'?p.f:p.m)));ps.forEach(lay);
+  const x=ps.length?ps.reduce((a,k)=>a+raw[k].x,0)/ps.length:leaf++*SLOT;raw[id]={x,r:genOf[id]}})(ROOT);
+ const occ={};const add=(r,x,w)=>{(occ[r]=occ[r]||[]).push([x,x+(w||W)])};
+ for(const id in raw)add(raw[id].r,raw[id].x);
+ const extra=[],sibL=[],downL=[],inL=[];
+ {const youX=raw[ROOT].x;
+  const fams=Object.keys(DESC).filter(k=>raw[k]&&!DESC[k].alias).map(k=>{const c=(DESC[k].k||[]).find(c=>c.id&&raw[c.id]);return c?{k,c:c.id,g:raw[c.id].r}:null}).filter(Boolean).sort((a,b)=>a.g-b.g);
+  for(const f of fams){const left=raw[f.c].x<youX;const kidsList=DESC[f.k].k.filter(k=>!(k.id&&raw[k.id]));
+   if(!EXT){if(!kidsList.length)continue;const ncol=Math.ceil(kidsList.length/3),bw=ncol*CSLOT-(CSLOT-CW);
+    const fits=o=>!(occ[f.g]||[]).some(([a,b])=>o-GAP<b&&o+bw+GAP>a);
+    let o=left?raw[f.c].x-GAP-bw:raw[f.c].x+W+GAP;let g=0;const step=left?-CSLOT/2:CSLOT/2;while(!fits(o)&&g++<800)o+=step;
+    add(f.g,o,bw);
+    kidsList.forEach((kid,i)=>{const col=left?ncol-1-Math.floor(i/3):Math.floor(i/3);const n={c:kid,ax:o+col*CSLOT,r:f.g,dy:(i%3)*(CH+CGAP),sm:true,ks:[]};extra.push(n);if(i%3===0)sibL.push({n,anchor:f.c})});
+    continue}
+   for(const kid of (left?kidsList.slice().reverse():kidsList)){
+    const nodes=[];let lf=0;
+    const t=(function lt(c,d){const kk=(c.id||!EXT?[]:(c.k||[]));const ks=kk.filter(x=>!x.inlaw).map(x=>lt(x,d+1));const x=ks.length?(ks[0].x+ks[ks.length-1].x)/2:lf++*SLOT;const nd={c,x,d,ks};nodes.push(nd);kk.filter(x=>x.inlaw).forEach(x=>{const m={c:x,x:lf++*SLOT,d,ks:[]};nodes.push(m);inL.push([nd,m])});return nd})(kid,0);
+    const minN=Math.min(...nodes.map(n=>n.x)),maxN=Math.max(...nodes.map(n=>n.x));
+    const fits=off=>nodes.every(n=>{const r=f.g-n.d,x0=off+n.x-GAP,x1=off+n.x+W+GAP;return !(occ[r]||[]).some(([a,b])=>x0<b&&x1>a)});
+    let off=left?raw[f.c].x-SLOT-maxN:raw[f.c].x+SLOT-minN;let g=0;const step=left?-SLOT/2:SLOT/2;
+    while(!fits(off)&&g++<800)off+=step;
+    nodes.forEach(n=>{n.r=f.g-n.d;n.ax=off+n.x;add(n.r,n.ax);extra.push(n)});
+    sibL.push({n:t,anchor:f.c});nodes.forEach(n=>n.ks.forEach(k=>downL.push([n,k])));
+   }}}
+ const xs=[...Object.values(raw).map(p=>p.x),...extra.map(e=>e.ax)],rs=[...Object.values(raw).map(p=>p.r),...extra.map(e=>e.r)];
+ const minX=Math.min(...xs),maxX=Math.max(...xs),minR=Math.min(...rs),maxR=Math.max(...rs);
+ const X=x=>PADX+x-minX,Y=r=>PADY+(maxR-r)*RH;
+ SW=PADX+maxX-minX+W+24;SH=PADY+(maxR-minR)*RH+H+40;
+ stage.style.width=SW+'px';stage.style.height=SH+'px';svg.setAttribute('width',SW);svg.setAttribute('height',SH);
+ pos={};for(const id in raw)pos[id]={x:X(raw[id].x),y:Y(raw[id].r)};
+ for(let r=maxR;r>=Math.max(0,minR);r--){const l=document.createElement('div');l.className='gen-label';l.style.left='10px';l.style.top=(Y(r)+20)+'px';l.style.width='110px';l.textContent=GL[r]||((r-2)+'× great-grandparents');stage.appendChild(l)}
+ const mid=r=>Y(r)-16;let paths='';
+ for(const id in raw){const p=P[id];const ps=[p.f,p.m].filter(x=>x&&raw[x]);if(!ps.length)continue;const cx=pos[id].x+W/2,cy=pos[id].y,my=mid(raw[id].r);
+  for(const q of ps){const px=pos[q].x+W/2,py=pos[q].y+H;paths+=`<path d="M${cx} ${cy}V${my}H${px}V${py}"/>`}}
+ for(const s of sibL){const sx=X(s.n.ax)+(s.n.sm?CW:W)/2,sy=Y(s.n.r),ax=pos[s.anchor].x+W/2,my=mid(s.n.r);paths+=`<path class="ext" d="M${sx} ${sy}V${my}H${ax}"/>`}
+ for(const [a,k] of inL){const y=Y(a.r)+H/2;paths+=`<path class="ext inlaw" d="M${X(a.ax)+W} ${y}H${X(k.ax)}"/>`}
+ for(const [a,k] of downL){const x1=X(a.ax)+W/2,y1=Y(a.r)+H,x2=X(k.ax)+W/2,y2=Y(k.r),my=(y1+y2)/2;paths+=`<path class="ext" d="M${x1} ${y1}V${my}H${x2}V${y2}"/>`}
+ svg.innerHTML=paths;
+ for(const id in raw){const p=P[id],a=pos[id];const b=document.createElement('button');
+  b.className='p '+side[id]+(dnaIds.has(id)?' dna':'')+(p.img?' hasimg':'');b.style.left=a.x+'px';b.style.top=a.y+'px';b.dataset.id=id;b.id='p-'+id;
+  b.innerHTML=`<span class="dot ${p.proof}"></span>${p.img?`<img class="av" src="${p.img}" alt="">`:''}<span class="nm">${p.star?`<span class="star" aria-hidden="true">★</span>`:''}${p.n}</span><span class="yr">${p.y||''}</span>`;
+  b.setAttribute('aria-label',p.n+(p.y?', '+p.y:''));b.addEventListener('click',()=>show(id));stage.appendChild(b)}
+ for(const n of extra){const c=n.c;const d=document.createElement('div');d.className='p ext'+(n.sm?' sm':'')+(c.inlaw?' inlaw':'');d.style.left=X(n.ax)+'px';d.style.top=(Y(n.r)+(n.dy||0))+'px';
+  d.innerHTML=n.sm?`<span class="nm">${c.st?`<span class="star" aria-hidden="true">★</span>`:''}${esc(c.n)}</span>${!c.l&&c.y?`<span class="yr">${esc(c.y)}</span>`:''}`:`<span class="nm">${c.st?`<span class="star" aria-hidden="true">★</span>`:''}${esc(c.n)}</span>${!c.l&&c.y?`<span class="yr">${esc(c.y)}</span>`:''}${c.sp&&!c.l?`<span class="yr">m. ${esc(c.sp)}</span>`:''}${c.note?`<span class="yr">${esc(c.note)}</span>`:''}`;if(c.st){d.classList.add('clk');d.tabIndex=0;d.setAttribute('role','button');d.onclick=()=>showX(c);d.onkeydown=e=>{if(e.key==='Enter')showX(c)}}stage.appendChild(d)}
+}
+
+/* ---- panel ---- */
+const panel=document.getElementById('panel');
+const PL={told:'You told me',confirmed:'Confirmed by record',record:'Record found',check:'Tree claim, needs checking',lore:'Family lore, not proven'};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function showX(c){panel.innerHTML=`<div class="ph"><h2>${esc(c.n)}</h2><button class="close" aria-label="Close">✕</button></div>
+ <p class="rel">${c.rel?esc(c.rel):'Relative'}</p><p class="notes" style="margin:0 0 10px"><b style="color:var(--warn)">★</b> ${esc(c.st)}</p>
+ ${!c.l&&c.y?`<dl><dt>Years</dt><dd>${esc(c.y)}</dd></dl>`:''}${c.more?`<div class="sec">Notes</div><p class="notes">${esc(c.more)}</p>`:''}
+ ${c.src?`<div class="sec">Sources</div><div class="src">${c.src.map(s=>`<a href="${s[1]}" target="_blank" rel="noopener">${esc(s[0])}</a>`).join('')}</div>`:''}`;
+ panel.hidden=false;panel.scrollTop=0;panel.querySelector('.close').onclick=()=>{panel.hidden=true}}
+function show(id){const p=P[id];document.querySelectorAll('.p.sel').forEach(e=>e.classList.remove('sel'));const el=document.getElementById('p-'+id);el&&el.classList.add('sel');
+ const row=(k,v)=>v?`<dt>${k}</dt><dd>${esc(v)}</dd>`:'';
+ const btn=x=>P[x]?`<button data-go="${x}">${esc(P[x].n)}</button>`:'';
+ const par=[p.f,p.m].filter(x=>P[x]);const ch=(kids[id]||[]);
+ panel.innerHTML=`${p.img?`<img class="portrait" src="${p.img}" alt="Portrait of ${esc(p.n)}">${p.imgc?`<p class="cap">${esc(p.imgc)}</p>`:''}`:''}<div class="ph"><h2>${esc(p.n)}</h2><button class="close" aria-label="Close">✕</button></div>
+ <p class="rel">${p.aka?esc(p.aka)+' · ':''}${relName(id)}</p><span class="badge ${p.proof}">${PL[p.proof]}</span>${p.star?`<p class="notes" style="margin:0 0 10px"><b style="color:var(--warn)">★</b> ${esc(p.star)}</p>`:''}
+ <dl>${row('Born',p.b)}${row('Died',p.d)}${row('Buried',p.bur)}${row('Years',!p.b&&!p.d?p.y:'')}${row('Spouse',p.sp)}${row('Siblings',p.sib)}</dl>
+ ${p.notes?`<div class="sec">Notes</div><p class="notes">${esc(p.notes)}</p>`:''}
+ <div class="sec">Parents</div>${par.length?`<div class="links">${par.map(btn).join('')}</div>`:'<p class="notes" style="color:var(--muted)">Not found yet.</p>'}
+ ${ch.length?`<div class="sec">Child in this tree</div><div class="links">${ch.map(btn).join('')}</div>`:''}
+ ${DM[id]?`<div class="sec">Family</div><div class="famlinks"><button data-openfam="${id}">See their children and grandchildren</button></div>`:''}
+ ${p.src?`<div class="sec">Sources</div><div class="src">${p.src.map(s=>s[1]?`<a href="${s[1]}" target="_blank" rel="noopener">${esc(s[0])}</a>`:`<span>${esc(s[0])}</span>`).join('')}</div>`:''}`;
+ panel.hidden=false;panel.scrollTop=0;
+ panel.querySelector('.close').onclick=()=>{panel.hidden=true;document.querySelectorAll('.p.sel').forEach(e=>e.classList.remove('sel'))};
+ panel.querySelectorAll('[data-openfam]').forEach(b=>b.onclick=()=>openFam(b.dataset.openfam));
+ panel.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{show(b.dataset.go);focusOn(b.dataset.go)});}
+const vp=document.getElementById('viewport');let scale=1;
+function applyScale(){stage.style.transform=`scale(${scale})`;stage.parentElement.style.setProperty('--s',scale);
+ const wrap=stage;wrap.style.marginRight=(SW*scale-SW)+'px';wrap.style.marginBottom=(SH*scale-SH)+'px'}
+function focusOn(id){const a=pos[id];if(!a)return;vp.scrollTo({left:a.x*scale-vp.clientWidth/2+W*scale/2,top:a.y*scale-vp.clientHeight/2+H*scale/2})}
+document.getElementById('zin').onclick=()=>{scale=Math.min(1.6,scale<0.3?scale*1.5:scale+0.15);applyScale()};
+document.getElementById('zout').onclick=()=>{scale=Math.max(0.05,scale>0.3?scale-0.15:scale/1.5);applyScale()};
+document.getElementById('zfit').onclick=()=>{scale=Math.max(0.05,Math.min(1,vp.clientWidth/SW,vp.clientHeight/SH));applyScale();vp.scrollTo(0,0)};
+document.getElementById('dnaBtn').onclick=e=>{const b=e.currentTarget;const on=b.getAttribute('aria-pressed')!=='true';b.setAttribute('aria-pressed',on);document.getElementById('dnaBox').hidden=!on;if(on)document.getElementById('dnaBox').scrollIntoView({block:'nearest'})};
+
+/* ---- family view: children of ancestor couples (blood relatives; spouses by name only) ---- */
+const L=true;
+const DESC={
+ jfontaine:{t:"Rev. Jacques & Anne Fontaine",k:[
+  {n:"Mary Ann Fontaine Maury",y:"b. 1690",sp:"Matthew Maury, married 1716 in Ireland",rel:"Your 9x great-aunt (Rev. Francis Fontaine's sister)",st:"Mother of the Maury family of Virginia. Her son taught Thomas Jefferson, and her great-grandson founded modern oceanography.",more:"The oldest child of the memoir writer. She married Matthew Maury, also a French Huguenot refugee, in Ireland in 1716. They moved to Virginia.",src:[["Memoirs, family appendix","https://www.baptists.net/history/?p=9493"],["James Maury (her son)","https://www.wikiwand.com/en/articles/James_Maury"]],k:[
+   {img:"https://www.hmdb.org/Photos/57/Photo57574.jpg?11252005",imgc:"Maury's School marker, Albemarle County, Virginia — Thomas Jefferson was among his students",n:"Rev. James Maury",y:"1717–1769",rel:"1st cousin, 9 times removed",st:"Taught a young Thomas Jefferson. Won the famous \"Parson's Cause\" lawsuit against Patrick Henry, but the jury awarded him only one penny.",more:"Born in Dublin, Ireland. A minister and schoolteacher in Virginia. Thomas Jefferson studied with him for two years after Jefferson's father died in 1757, and said he learned more classics from Maury than from anyone else. In the Parson's Cause (Hanover County, 1763), Maury sued for his back pay. Virginia paid its parsons 16,000 pounds of tobacco a year by law; after the 1758 drought spiked tobacco prices, the Two-Penny Act let parishes pay in cash at twopence a pound, a fraction of the tobacco's worth, and every parson in the colony took the cut. London struck the act down, and Maury sued for the difference he was owed. The parish's lawyer was a 27-year-old Patrick Henry, who argued in open court that a king who vetoes a law like that degenerates into a tyrant. The judge ruled the act invalid, so Maury won his case outright, but the jury of local farmers set his damages at exactly one penny. He had 13 children.",src:[["James Maury","https://www.wikiwand.com/en/articles/James_Maury"]],k:[
+    {n:"Richard Maury",rel:"2nd cousin, 9 times removed",k:[
+     {img:"https://upload.wikimedia.org/wikipedia/commons/0/06/Lt._Matthew_Maury.jpg",imgc:"In U.S. Navy uniform, c. 1853 (public domain)",n:"Matthew Fontaine Maury",y:"1806–1873",rel:"3rd cousin, 8 times removed (if the Fontaine link holds)",st:"The \"Pathfinder of the Seas\". A founder of modern oceanography.",more:"His wind and current charts made ocean voyages much shorter. He wrote The Physical Geography of the Sea (1855), the first full book on oceanography. Named Fontaine after his great-grandmother, Mary Ann Fontaine.",src:[["Matthew Fontaine Maury","https://cavac.at/cavacopedia/Matthew%20Fontaine%20Maury"]]}]}]}]},
+  {n:"Rev. Peter Fontaine",y:"1691–1757",rel:"Your 9x great-uncle",st:"Rector of Westover Parish, Virginia. His branch of the family later married into Patrick Henry's family.",more:"Came to Virginia as a minister. His daughter Mary Ann married Isaac Winston. His grandson Col. John Fontaine married Patrick Henry's daughter Martha in 1773. That link is confirmed by published family history.",src:[["Peter Fontaine","https://en.wikipedia.org/wiki/Peter_Fontaine"],["Martha Henry Fontaine","https://www.werelate.org/wiki/Person:Martha_Henry_%2814%29"]],k:[
+   {n:"Col. Peter Fontaine Jr.",y:"1720–1779",sp:"Elizabeth Winston",rel:"1st cousin, 10 times removed",more:"Of Rock Castle, Hanover County, Virginia. Son of Rev. Peter Fontaine. His letters are printed in the 1853 edition of the family memoir. His wife Elizabeth Winston was from the same Winston family as Patrick Henry's mother.",src:[["Memoirs of a Huguenot Family, 1853 edition","https://catalog.hathitrust.org/Record/009008936"]],k:[
+   {n:"Col. John Fontaine",y:"1750–1792",sp:"Martha \"Patsey\" Henry, married Oct 2, 1773, at Scotchtown",rel:"2nd cousin, 9 times removed",st:"Revolutionary War officer who served at Yorktown. Married Patrick Henry's daughter Martha.",more:"Born at Beaverdam, Hanover County. Grandson of Rev. Peter Fontaine, through Col. Peter Fontaine Jr. Captain in the Henry County, Virginia militia, served at Yorktown, and was Commissioner of Taxes in 1779. DAR Patriot Ancestor A040416. He and Martha Henry were second cousins through the Winston family. He bought part of Leatherwood from his father-in-law in 1779 and died there of malaria in 1792. He married Martha \"Patsey\" Henry at Scotchtown in 1773. They lived at Leatherwood Plantation. Their children include Patrick Henry Fontaine (1775–1852). Those children are blood cousins of yours AND grandchildren of Patrick Henry. Their children are your 3rd cousins, 8 times removed. The line Rev. Peter → Col. Peter Jr. → Col. John is confirmed by a descendant's published family notes (William and Mary Quarterly), two published genealogies, and the Patrick Henry National Memorial.",src:[["Patrick Henry's family – Red Hill","https://www.redhill.org/patrick-henry/patrick-henrys-family/"],["SAR patriot record","https://sarpatriots.sar.org/patriot/display/332451"],["Martha Henry Fontaine","https://www.werelate.org/wiki/Person:Martha_Henry_%2814%29"]],k:[
+    {img:"https://upload.wikimedia.org/wikipedia/commons/e/ea/Patrick_henry.JPG",imgc:"Portrait after Thomas Sully (public domain)",n:"Patrick Henry",y:"1736–1799",inlaw:true,rel:"Related by marriage, not blood. Father-in-law of your cousin Col. John Fontaine",st:"Founding Father. \"Give me liberty, or give me death!\" (1775). First governor of independent Virginia.",more:"His daughter Martha married your cousin John Fontaine in 1773. So Patrick Henry is not your blood relative, but his Fontaine grandchildren are your blood cousins. Fun twist: Patrick Henry argued against your other cousin, Rev. James Maury, in the Parson's Cause in 1763.",src:[["Patrick Henry's family – Red Hill","https://www.redhill.org/patrick-henry/patrick-henrys-family/"]]}]}]}]},
+  {id:"rfrancis"},{n:"John Fontaine"},{n:"Moses Fontaine"},{n:"Aaron Fontaine",note:"died young"}]},
+ chris:{t:"Christopher & Effie Harris",k:[{id:"ewh1"},{n:"Violet Elizabeth Harris",y:"1914–1974",sp:"Ashford Travis Jordan",k:[{n:"Shirley Elizabeth Jordan Thomas",y:"1935–2023"},{n:"Margot Cavell Jordan Reid",y:"1938–2008"}]},{n:"Robert Christopher \"Bob\" Harris",y:"1916–2001",sp:"Winifred Monson",k:[{n:"Robert Lynn Harris",y:"1940–1997"}]},{n:"Margaret Cavell Harris Carter",y:"1919–2007"}]},
+ ewh1:{t:"Edward Sr. & Virgie Harris",k:[{n:"Laurence Christopher \"Larry\" Harris",y:"1936–2024",sp:"Angela",k:[{n:"Allyson Cheryl Harris",l:L,sp:"Paul",k:[{n:"Natalie",l:L},{n:"Jake",l:L}]},{n:"Tracy Coleen Harris",l:L,sp:"Ernest",k:[{n:"Ernest",l:L},{n:"Maggie",l:L}]},{n:"Laurence Christopher \"Chris\" Harris",l:L,sp:"Cristy",note:"Judy is checking if he is a Jr.",k:[{n:"Lauren Harris",l:L,note:"23andMe match"},{n:"Anna Harris",l:L,note:"Judy wasn't sure of this name"}]}]},{id:"ewh2"},{n:"Judith Lee \"Judy\" Harris",l:L,sp:"James Edward Rose",k:[{n:"Floyd Harris Rose",l:L},{n:"Elizabeth Leigh Rose",l:L},{n:"James Edward Rose Jr.",l:L,note:"likely the 23andMe match James Rose"},{n:"Cary Michael Rose",l:L},{n:"Kevin Martin Rose",l:L,note:"likely the 23andMe match Kevin Rose"}]}]},
+ ewh2:{t:"Bubba & Gerry Harris",k:[{id:"dad"},{n:"Paige",l:L},{n:"Rick",l:L},{n:"Dana",l:L}]},
+ dad:{t:"Edward III & Lynn Harris",k:[{n:"Katherine Harris",l:L},{n:"Anna Harris",l:L},{id:"you"},{n:"Turner Harris",l:L}]},
+ george:{t:"George & Elizabeth Harriss",k:[{id:"chris"},{n:"Annie Sarah Harriss",y:"b. 1886"},{n:"Nellie Harriss",y:"1889–1970"},{n:"Thomas Edward Harriss",y:"b. 1893"},{n:"William George Harriss",y:"b. 1895"},{n:"Robert Guy Harriss",y:"b. 1901"}]},
+ roy:{t:"Roy & Ollie Dixon",k:[{id:"hugh"},{n:"Eugene Lester Dixon",y:"1918–1919"},{n:"Opal Inez Dixon",y:"1919–1993",sp:"James Ryle \"JR\" Jackson Jr."},{n:"Thornton Morgan Dixon",y:"1921–2019",sp:"Mary Ellen Caldwell",note:"23andMe match"},{n:"Jewell Dixon Sheppard",y:"1924–1967"},{n:"Verdie Dixon Dosal",l:L},{n:"Shirley Dixon",note:"youngest"}]},
+ hugh:{t:"Hugh & Myrtice Dixon",k:[{id:"bobby"},{n:"Ronald Andrew \"Ronnie\" Dixon Sr.",y:"1942–2020",sp:"Sandy",rel:"Great-uncle (Grandpa Bobby's brother)",st:"Mayor of Vidalia for about 27 years, from 1993 until his death in 2020, following his father Hugh. Georgia Municipal Association Hall of Fame, 2009.",more:"Football star at Vidalia High School, Class B All-State in 1959. Played football at Florida State for a year on scholarship, then at the University of Georgia, where he also ran track and played basketball. Business degree from UGA. Served in the National Guard during the Cuban Missile Crisis. On Vidalia City Council from 1977, 5 years as Mayor Pro Tem. As mayor, he oversaw the airport renovation and the Sweet Onion Museum, Visitors' Center and Community Center. The Georgia Senate honored him with Resolution 962 in 2020. A scholarship is named for him. Survived by his sons Rad, Hugh and Randy, and brother Wendell.",src:[["The Advance obituary","https://www.theadvancenews.com/theadvance/news/?p=28669"],["AJC, 2020","https://www.ajc.com/news/southeast-georgia-mayor-dies-after-years-office/fDTCEU9xnS60z9mEzrZf0N"],["GA Senate Res. 962","https://legiscan.com/GA/bill/SR962/2019"],["Tributes, The Advance","https://www.theadvancenews.com/theadvance/news/?p=69"]],k:[{n:"Rad Dixon",l:L},{n:"Hugh Dixon",l:L},{n:"Randy Dixon",l:L}]},{n:"Wendell H. Dixon",l:L,sp:"Elaine",rel:"Great-uncle (Grandpa Bobby's brother)",st:"Toombs County Commissioner (District 2) for 12 years, after 10 years on the Toombs County Development Authority. CEO/EVP of Peoples Bank in Vidalia and Lyons. Vidalia Citizen of the Year in 2001. Chaired the 2004 Vidalia Onion Festival.*",more:"Vidalia High's kicker on the undefeated 1969 state championship team. In the title game on December 13, 1969, Vidalia beat Lithonia 7–6: after Ricky Mitchell's 20-yard touchdown run, Wendell's extra point was the winning margin. The team, coached by Buck Cravey, finished 14–0, in the last season before Vidalia City Schools fully integrated in 1970. At 6 feet 3 and 205 pounds he earned All-State honors and an All-Southern honorable mention, and he was inducted into the Vidalia High School Athletic Hall of Fame in 2023. That fall he played freshman football at the University of Georgia, at right tackle for the 1970 Bullpups. Economics graduate of Georgia Southern College, with a certificate from the University of Georgia Banking School, and a Vidalia banker for over 32 years. In 2024 he stepped back from the Commission — 22 years with the County, by his own count — while staying on at Peoples Bank. *Wendell submitted these fun facts about himself.",src:[["Toombs County Commissioners","https://toombscountyga.gov/?p=25"],["Peoples Bank — About Us","https://ourpeoplesbank.com/about-us-2/"],["The Advance, 2025 — Toombs Continues Moving Forward","https://www.theadvancenews.com/2025/12/31/toombs-continues-moving-forward/"],["Southeast Georgia profile of Wendell Dixon (screenshot via William, 2026-11-08)",""]]}]},
+ bobby:{t:"Bobby & Betty Dixon",k:[{n:"Bob Dixon Jr.",l:L,sp:"Suzanne",k:[{n:"John Dixon",l:L},{n:"Elizabeth Madison",l:L},{n:"Abigail Dixon",l:L},{n:"Paul Dixon",l:L}]},{n:"Kathy Dixon Usher",l:L,k:[{n:"Rebekah Usher",l:L},{n:"Rachel Usher Sikes",l:L}]},{id:"mom"}]},
+ mom:{t:"Lynn & Edward III Harris",alias:"dad"},
+ aej:{t:"Andrew & Lorena Jackson",k:[{n:"Melba Jackson Bethea",y:"1912–1997",sp:"Londis Bethea"},{n:"Artie James Jackson",y:"1912–1915"},{n:"Edwin Jerry Jackson",y:"1913–1988",sp:"Iris Santerfiet"},{n:"Ewart Wilder Jackson Sr.",y:"1916–1988"},{id:"myrtice"},{n:"Ernest L. Jackson",y:"1922–2015",sp:"Olive Faulkner"},{n:"Willie Earl Jackson",y:"1930–1999"}]},
+ neill2:{t:"Neill II & Eula Thaggard",k:[{n:"Neill Archibald Thaggard III",y:"1929–2001"},{n:"Sue Jane Thaggard Adams",y:"1937–2005"},{id:"betty"}]},
+ ernest:{t:"Ernest & Ida Dowdy",k:[{id:"gerry"},{n:"Adaline Glennette Dowdy",y:"1942–2004"},{n:"Wanda Dowdy"}]},
+ simon:{t:"Simon & Nona Neville",k:[{n:"William Gesmon Neville Sr.",y:"1892–1965"},{n:"Charles Jackson Neville",y:"1894–1986"},{n:"Leroy Felton Neville",y:"1897–1955"},{n:"Maggie Eunice Neville Calhoun",y:"1900–1999"},{id:"eula"},{n:"Lila Ethel Neville Edwards",y:"1907–2004"},{n:"Simon Melvin \"Sam\" Neville",y:"1910–2001"},{n:"Lenna Lee Neville Harford",y:"1913–2002"},{n:"Eugene Ottis Neville",y:"1915–1984"}]},
+ wrl:{t:"William & Susie Landrum",k:[{n:"Vera Estelle Landrum Brooks",y:"1902–1993"},{n:"Arthur Davis Landrum",y:"1904–1926"},{n:"Carmen Thelma Landrum",y:"1906–1918"},{n:"Ellis Earl Landrum",y:"1908–1995"},{n:"Lawrence Clifford Landrum",y:"1910–1912"},{id:"virgie"},{n:"William Robert \"Bob\" Landrum Jr.",y:"1915–1975"},{n:"Catherine Miller Landrum Barco",y:"1918–2000"}]},
+ edwardh:{t:"Edward & Harriett Harriss",k:[{n:"Thomas Harriss",y:"b. 1858"},{id:"george"},{n:"Ann Harriss",y:"b. 1864"},{n:"William Edward Harriss",y:"b. 1866"},{n:"Henry Harriss",y:"b. about 1872"},{n:"Harriett Susanna Harriss",y:"b. 1876"}]},
+ tcaterer:{t:"Thomas & Sarah Caterer",k:[{id:"bessie"},{n:"Thomas Caterer",y:"b. about 1862"},{n:"James Caterer",y:"b. 1871"}]},
+ neill1:{t:"Neill Sr. & Susie Thaggard",k:[{n:"Walter Leonard Thaggard",y:"1895–1962"},{n:"Mamie Thaggard Daniel",y:"1897–1984"},{n:"Mittie Thaggard Clanton",y:"1899–1987"},{id:"neill2"},{n:"Sallie Thaggard Cannady",y:"1904–1989"},{n:"James Cecil Thaggard Sr.",y:"1907–1983"},{n:"Willie Mabel Thaggard Bennett",y:"1908–1987"},{n:"Stephen Ray Thaggard",y:"1912–1988"},{n:"Sue Thaggard Mecke",y:"1917–2012"}]},
+ jaj:{t:"Jim & Jane Jackson",k:[{n:"Festus Stephen Jackson",y:"1870–1947"},{n:"Shellie Jackson Wilder Bennett"},{n:"James Ryle Jackson Sr.",y:"1875–1963",k:[{n:"James Ryle \"JR\" Jackson Jr.",y:"1920–2008",sp:"Opal Inez Dixon (Hugh's sister)"}]},{n:"John Alexander Jackson",y:"1877–1965"},{n:"Wyatt Thomas Jackson",y:"1880–1957"},{n:"Grover Cleveland Jackson",y:"1884–1963"},{id:"aej"},{n:"Tom C. Jackson",y:"b. about 1884"},{n:"Julia S. Jackson",y:"b. about 1892"}]},
+ jmc:{t:"Jackson & Nancy Carmichael",k:[{n:"James Duncan Carmichael",y:"1891–1970"},{id:"ollie"},{n:"Emma Carmichael",y:"1898"},{n:"William J. Carmichael",y:"1899–1900"},{n:"Eva Carmichael",y:"1902"},{n:"Flossie Mae Carmichael Cross",y:"1902–1985"},{n:"Thelma Carmichael Ward",y:"1911–2006"}]},
+ jwh:{t:"John & Fannie Hawkins",k:[{n:"James Winston Hawkins",y:"1900–1974"},{n:"Paul Kidd Hawkins",y:"1903–1991"},{n:"Aline Hawkins",y:"1906–1920"},{n:"William Blanton Hawkins",y:"1909–1986"},{n:"Cawley Coates Hawkins",y:"1916–1974"},{id:"ida"}]},
+ wjd:{t:"William & Lettie Dowdy",k:[{id:"ernest"},{n:"William Grady Dowdy",y:"1917–1988"},{n:"Edward Randolph Dowdy",y:"1920–1976"},{n:"William Thomas Dowdy",y:"1923–2002"},{n:"Lounell Dowdy",y:"1926–2021"},{n:"Ruth A. Dowdy",y:"1928–2019"},{n:"Buford Grant Dowdy",y:"1930–2014"},{n:"Willma Laverne Dowdy",y:"1933–2024"}]}
+};
+const DM={};for(const [k,v] of Object.entries(DESC)){DM[k]=v.alias||k;const a=P[k];if(a){const kidId=(DESC[v.alias||k].k||[]).find(c=>c.id&&P[c.id])?.id;const other=kidId?(P[kidId].f===k?P[kidId].m:P[kidId].f):null;if(other&&!DM[other])DM[other]=v.alias||k}}
+const fam=document.getElementById('fam'),fams=document.getElementById('fams'),famsvg=document.getElementById('famsvg');
+function famNode(c){if(c.id){const p=P[c.id];const key=DM[c.id];return {id:c.id,n:p.n,y:p.y||'',l:false,sp:'',k:key&&DESC[key]?(DESC[key].k||[]):[],anc:true}}return {n:(c.st?'★ ':'')+c.n,y:c.l?'':(c.y||''),l:!!c.l,sp:c.l?'':(c.sp||''),note:c.note||'',k:(c.k||[]).filter(x=>!x.inlaw)}}
+let curRoot='';
+function openFam(id){const key=DM[id];if(!key)return;const d=DESC[key];curRoot=key;document.getElementById('famt').textContent='Children and grandchildren of '+d.t;
+ const W=168,GX=14,RH=120,PAD=20;let leaf=0;const nodes=[];
+ (function lay(c,depth){const nd=famNode(c);const kids=(nd.k||[]).map(x=>lay(x,depth+1));let x;if(!kids.length){x=leaf++*(W+GX)}else{x=(kids[0].x+kids[kids.length-1].x)/2}nd.x=x;nd.d=depth;nd.kids=kids;nodes.push(nd);return nd})({n:d.t,k:d.k},-1);
+ const real=nodes;real.forEach(n=>n.d++);const maxD=Math.max(0,...real.map(n=>n.d));const SW=PAD*2+leaf*(W+GX),SH=PAD*2+(maxD+1)*RH;
+ fams.style.width=SW+'px';fams.style.height=SH+'px';famsvg.setAttribute('width',SW);famsvg.setAttribute('height',SH);
+ fams.querySelectorAll('.f').forEach(e=>e.remove());let paths='';
+ for(const n of real){const b=document.createElement(n.anc?'button':'div');b.className='f'+(n.anc?' anc':'')+(n.id==='you'?' me':'')+(n.d===0?' anc':'');b.style.left=(PAD+n.x)+'px';b.style.top=(PAD+n.d*RH)+'px';
+  b.innerHTML=`<span class="nm">${esc(n.n)}</span>${n.y?`<span class="yr">${esc(n.y)}</span>`:''}${n.sp?`<span class="sp">m. ${esc(n.sp)}</span>`:''}${n.note?`<span class="sp">${esc(n.note)}</span>`:''}`;
+  if(n.anc){b.onclick=()=>{fam.hidden=true;show(n.id);focusOn(n.id)}}fams.appendChild(b);
+  for(const k of n.kids){const x1=PAD+n.x+W/2,y1=PAD+n.d*RH+(b.offsetHeight||60),x2=PAD+k.x+W/2,y2=PAD+k.d*RH,my=y1+(y2-y1)/2;paths+=`<path d="M${x1} ${y1}V${my}H${x2}V${y2}"/>`}}
+ famsvg.innerHTML=paths;fam.hidden=false;const fv=document.getElementById('famv');const rt=nodes[nodes.length-1];fv.scrollTo(Math.max(0,PAD+rt.x+W/2-fv.clientWidth/2),0)}
+document.getElementById('famx').onclick=()=>{fam.hidden=true};
+document.querySelectorAll('[data-fam]').forEach(b=>b.onclick=()=>openFam(b.dataset.fam));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')fam.hidden=true});
+document.getElementById('extBtn').onclick=e=>{EXT=!EXT;e.currentTarget.setAttribute('aria-pressed',EXT);render();applyScale();requestAnimationFrame(()=>focusOn('you'))};
+document.getElementById('sideSel').onchange=e=>{SIDE=e.target.value;try{history.replaceState(null,'',SIDE==='mom'?'#dixon':SIDE==='dad'?'#harris':location.pathname+location.search)}catch(_){};render();applyScale();requestAnimationFrame(()=>focusOn('you'))};
+document.getElementById('depthSel').onchange=e=>{DEPTH=+e.target.value;render();applyScale();requestAnimationFrame(()=>focusOn('you'))};
+function fromHash(){const h=location.hash.replace('#','');SIDE=h==='dixon'?'mom':h==='harris'?'dad':'';const sel=document.getElementById('sideSel');if(sel)sel.value=SIDE}
+fromHash();window.addEventListener('hashchange',()=>{fromHash();render();applyScale();requestAnimationFrame(()=>focusOn('you'))});
+render();applyScale();requestAnimationFrame(()=>focusOn('you'));
+</script>
